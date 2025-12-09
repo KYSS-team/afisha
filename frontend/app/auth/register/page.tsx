@@ -34,7 +34,7 @@ export default function RegisterPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      await api.post('/auth/register', { fullName: fullName.trim(), email, password, confirm: confirmPassword });
+      await api.post('/auth/register', { fullName: fullName.trim(), email, password, confirmPassword });
       setMessage('На вашу почту отправлен код подтверждения. Перенаправляем на страницу ввода кода...');
       setRegistered(true);
       setTimeout(() => router.push(`/auth/verify?email=${encodeURIComponent(email)}`), 1000);

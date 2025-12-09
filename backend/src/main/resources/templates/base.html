@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{subject}}</title>
+    <title th:text="${subject}">subject</title>
     <style>
         body { font-family: sans-serif; }
         .container { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
@@ -14,8 +14,8 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">{{subject}}</div>
-        <div class="content">{{body}}</div>
+        <div class="header" th:text="${subject}">subject</div>
+        <div class="content" th:text="${body}">body</div>
         <div class="footer">С уважением, команда Афиши</div>
     </div>
 </body>
