@@ -5,15 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { api, emailRegex } from '../utils';
 
 interface AuthResponse {
+  message: string;
   user: {
     id: string;
     fullName: string;
     email: string;
     role: string;
-  };
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
   };
 }
 
@@ -42,12 +39,10 @@ export default function VerifyPage() {
     setLoading(true);
     try {
       const { data } = await api.post<AuthResponse>('/auth/verify-email', { email, code });
-      localStorage.setItem('accessToken', data.tokens.accessToken);
-      localStorage.setItem('refreshToken', data.tokens.refreshToken);
       localStorage.setItem('userId', data.user.id);
       localStorage.setItem('userRole', data.user.role);
       localStorage.setItem('userName', data.user.fullName);
-      setMessage('Email успешно подтвержден! Перенаправляем на страницу событий...');
+      setMessage(data.message || 'Email успешно подтвержден! Перенаправляем на страницу событий...');
       router.push('/events');
     } catch (e: any) {
       setError(e.response?.data?.message ?? 'Неверный код или истек срок действия');
