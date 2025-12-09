@@ -40,7 +40,7 @@ class AuthService(
             )
         )
         closeActiveVerificationTokens(user.id!!)
-        val code = generateCode()
+        val code = generateUniqueCode()
         verificationTokenRepository.save(
             EmailVerificationToken(
                 userId = user.id!!,
@@ -166,7 +166,15 @@ class AuthService(
 
     private fun User.toProfile() = UserProfile(id = id!!, fullName = fullName, email = email, role = role)
 
-    private fun generateCode(): String = (1..6).joinToString("") { Random.nextInt(0, 9).toString() }
+    private fun generateUniqueCode(): String {
+        repeat(5) {
+            val code = generateCode()
+            if (!verificationTokenRepository.existsByCode(code)) return code
+        }
+        throw IllegalStateException("Не удалось сгенерировать уникальный код")
+    }
+
+    private fun generateCode(): String = (1..6).joinToString("") { Random.nextInt(0, 10).toString() }
 }
 
 data class AuthTokens(val accessToken: String, val refreshToken: String)
