@@ -26,8 +26,18 @@ export default function EventsPage() {
     const queryUser = localStorage.getItem('userId') ?? '';
     setUserId(queryUser);
     axios
-      .get<EventCard[]>(`/events`, { params: { tab, userId: queryUser || undefined } })
-      .then((res) => setEvents(res.data));
+      .get<EventCard[] | { events?: EventCard[] }>(`/events`, {
+        params: { tab, userId: queryUser || undefined }
+      })
+      .then((res) => {
+        const data = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.events)
+            ? res.data.events
+            : [];
+        setEvents(data);
+      })
+      .catch(() => setEvents([]));
   }, [tab]);
 
   const statusBadge = (status: string) => {
