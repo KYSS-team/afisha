@@ -20,6 +20,7 @@ interface UserRepository : JpaRepository<User, UUID> {
 
 interface EmailVerificationTokenRepository : JpaRepository<EmailVerificationToken, UUID> {
     fun findByCode(code: String): EmailVerificationToken?
+    fun existsByCode(code: String): Boolean
     fun findAllByUserIdAndConsumedAtIsNull(userId: UUID): List<EmailVerificationToken>
 }
 
