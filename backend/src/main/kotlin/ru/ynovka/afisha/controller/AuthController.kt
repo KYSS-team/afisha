@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import ru.ynovka.afisha.service.AuthResult
 import ru.ynovka.afisha.service.AuthService
+import ru.ynovka.afisha.service.AuthTokens
 import ru.ynovka.afisha.service.UserProfile
 import java.time.Duration
 
@@ -81,7 +82,7 @@ class AuthController(
         val refreshCookie = buildCookie("refresh_token", result.tokens.refreshToken, Duration.ofMillis(refreshExpirationMs))
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, accessCookie.toString(), refreshCookie.toString())
-            .body(LoginResponse(message = message, user = result.user))
+            .body(LoginResponse(message = message, user = result.user, tokens = result.tokens))
     }
 
     private fun buildCookie(name: String, value: String, maxAge: Duration): ResponseCookie =
@@ -121,6 +122,6 @@ data class ResetPasswordRequest(
     @field:NotBlank val confirmPassword: String
 )
 
-data class LoginResponse(val message: String, val user: UserProfile)
+data class LoginResponse(val message: String, val user: UserProfile, val tokens: AuthTokens)
 
 data class RegistrationResponse(val message: String, val user: UserProfile)
