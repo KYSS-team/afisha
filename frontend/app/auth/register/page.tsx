@@ -14,7 +14,7 @@ export default function RegisterPage() {
 
   const submit = async () => {
     try {
-      await axios.post('/auth/register', { fullName, email, password, confirmPassword });
+      await axios.post('http://localhost:8080/auth/register', { fullName, email, password, confirmPassword });
       setMessage('Проверьте почту и введите код подтверждения.');
       setStage('verify');
     } catch (e: any) {
@@ -24,7 +24,7 @@ export default function RegisterPage() {
 
   const verify = async () => {
     try {
-      await axios.post('/auth/verify-email', { email, code });
+      await axios.post('http://localhost:8080/auth/verify-email', { email, code });
       setMessage('Регистрация подтверждена. Теперь можно войти.');
     } catch (e: any) {
       setMessage(e.response?.data?.message ?? 'Ошибка подтверждения');

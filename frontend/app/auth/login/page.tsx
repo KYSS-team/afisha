@@ -10,7 +10,7 @@ export default function LoginPage() {
 
   const submit = async () => {
     try {
-      const res = await axios.post('/auth/login', { email, password });
+      const res = await axios.post('http://localhost:8080/auth/login', { email, password });
       setMessage(`Добро пожаловать, ${res.data.fullName}. Перейдите на страницу событий.`);
     } catch (e: any) {
       setMessage(e.response?.data?.message ?? 'Ошибка входа');
