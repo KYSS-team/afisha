@@ -43,7 +43,7 @@ class AuthService(
         val code = generateUniqueCode()
         verificationTokenRepository.save(
             EmailVerificationToken(
-                userId = user.id!!,
+                userId = user.id,
                 code = code,
                 expiresAt = Instant.now().plus(24, ChronoUnit.HOURS)
             )
@@ -61,7 +61,7 @@ class AuthService(
 
         token.consumedAt = Instant.now()
         verificationTokenRepository.save(token)
-        closeActiveVerificationTokens(user.id!!, except = token.id)
+        closeActiveVerificationTokens(user.id, except = token.id)
 
         user.emailVerified = true
         user.emailVerifiedAt = Instant.now()
@@ -105,7 +105,7 @@ class AuthService(
         val token = UUID.randomUUID().toString()
         resetTokenRepository.save(
             PasswordResetToken(
-                userId = user.id!!,
+                userId = user.id,
                 token = token,
                 expiresAt = Instant.now().plus(24, ChronoUnit.HOURS)
             )
