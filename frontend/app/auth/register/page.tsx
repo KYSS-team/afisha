@@ -25,19 +25,21 @@ export default function RegisterPage() {
     return Object.keys(nextErrors).length === 0;
   };
 
+  const [error, setError] = useState('');
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setError('');
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await api.post('/auth/register', { fullName, email, password, confirmPassword });
-      setMessage(res.data?.message ?? 'Регистрация успешно создана. Проверьте почту для подтверждения.');
+      await api.post('/auth/register', { fullName: fullName.trim(), email, password, confirm: confirmPassword });
+      setMessage('На вашу почту отправлен код подтверждения. Перенаправляем на страницу ввода кода...');
       setRegistered(true);
-      localStorage.setItem('pendingEmail', email);
-      router.push(`/auth/verify?email=${encodeURIComponent(email)}`);
+      setTimeout(() => router.push(`/auth/verify?email=${encodeURIComponent(email)}`), 1000);
     } catch (e: any) {
-      setMessage(e.response?.data?.message ?? 'Ошибка регистрации');
+      setError(e.response?.data?.message ?? 'Ошибка регистрации');
     } finally {
       setLoading(false);
     }
@@ -93,8 +95,11 @@ export default function RegisterPage() {
           {registered ? 'Проверьте почту' : loading ? 'Отправляем...' : 'Зарегистрироваться'}
         </button>
       </form>
-      <p className="text-sm text-slate-600">Мы сразу отправим вас на ввод кода подтверждения.</p>
-      {message && <div className="text-sm" role="alert">{message}</div>}
+      <a className="link text-sm" href="/auth/login">
+        Уже есть аккаунт? Войти
+      </a>
+      {message && <div className="text-sm text-green-600" role="alert">{message}</div>}
+      {error && <div className="text-sm text-red-600" role="alert">{error}</div>}
     </div>
   );
 }
