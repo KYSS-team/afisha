@@ -37,9 +37,9 @@ class AuthController(
     }
 
     @PostMapping("/verify-email")
-    fun verify(@Valid @RequestBody body: VerifyRequest): ResponseEntity<Map<String, Any>> {
-        authService.verifyEmail(body.email, body.code)
-        return ResponseEntity.ok(mapOf("message" to "Email подтвержден"))
+    fun verify(@Valid @RequestBody body: VerifyRequest): ResponseEntity<LoginResponse> {
+        val result = authService.verifyEmail(body.email, body.code)
+        return respondWithTokens(result, "Email подтвержден")
     }
 
     @PostMapping("/login")

@@ -1,7 +1,7 @@
 'use client';
 
-import axios from 'axios';
 import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api, emailRegex, passwordMeetsRules } from '../utils';
 
 interface LoginResponse {
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
@@ -33,13 +34,12 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const loginResponse = await api.post('/auth/login', { email, password });
-      setMessage(loginResponse.data?.message ?? 'Вход выполнен. Токены сохранены в cookies.');
-
-      const userResponse = await axios.post<LoginResponse>('http://localhost:8080/auth/login', { email, password });
-      localStorage.setItem('userId', userResponse.data.id);
-      localStorage.setItem('userRole', userResponse.data.role);
-      localStorage.setItem('userName', userResponse.data.fullName);
-      setMessage(`Добро пожаловать, ${userResponse.data.fullName}. Перейдите на страницу событий.`);
+      const user = loginResponse.data?.user as LoginResponse;
+      localStorage.setItem('userId', user.id);
+      localStorage.setItem('userRole', user.role);
+      localStorage.setItem('userName', user.fullName);
+      setMessage(`Добро пожаловать, ${user.fullName}. Перенаправляем к событиям...`);
+      setTimeout(() => router.push('/events'), 400);
     } catch (e: any) {
       setMessage(e.response?.data?.message ?? 'Ошибка входа');
     } finally {

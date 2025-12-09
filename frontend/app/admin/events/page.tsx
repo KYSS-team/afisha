@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import axios from 'axios';
 import { useEffect, useState } from 'react';
+import { api, API_BASE_URL } from '../../auth/utils';
 
 interface AdminEventRow {
   id: string;
@@ -17,17 +17,42 @@ export default function AdminEventsPage() {
   const [events, setEvents] = useState<AdminEventRow[]>([]);
   const [status, setStatus] = useState('');
 
-  useEffect(() => {
-    axios
-      .get<AdminEventRow[]>('http://localhost:8080/admin/events', {
+  const loadEvents = () => {
+    api
+      .get<AdminEventRow[]>('/admin/events', {
         headers: { 'X-Role': 'ADMIN' },
         params: { status: status || undefined },
       })
       .then((res) => setEvents(res.data));
+  };
+
+  useEffect(() => {
+    loadEvents();
   }, [status]);
 
   const exportFile = (format: 'csv' | 'xlsx') => {
-    window.open(`http://localhost:8080/admin/events/export/${format}`, '_blank');
+    window.open(`${API_BASE_URL}/admin/events/export/${format}`, '_blank');
+  };
+
+  const approve = async (id: string) => {
+    const details = await api.get(`/admin/events/${id}`, { headers: { 'X-Role': 'ADMIN' } });
+    const { event, participants } = details.data;
+    await api.put(
+      `/admin/events/${id}`,
+      {
+        title: event.title,
+        shortDescription: event.shortDescription,
+        fullDescription: event.fullDescription,
+        startAt: event.startAt,
+        endAt: event.endAt,
+        paymentInfo: event.paymentInfo,
+        maxParticipants: event.maxParticipants,
+        status: 'ACTIVE',
+        participantIds: participants.map((p: any) => p.userId),
+      },
+      { headers: { 'X-Role': 'ADMIN' } },
+    );
+    loadEvents();
   };
 
   return (
@@ -40,6 +65,7 @@ export default function AdminEventsPage() {
             <option value="ACTIVE">ACTIVE</option>
             <option value="PAST">PAST</option>
             <option value="REJECTED">REJECTED</option>
+            <option value="PENDING">PENDING</option>
           </select>
         </div>
         <div className="flex gap-2">
@@ -79,6 +105,11 @@ export default function AdminEventsPage() {
                   <Link className="btn" href={`/admin/events/${event.id}/edit`}>
                     Редактировать
                   </Link>
+                  {event.status === 'PENDING' && (
+                    <button className="btn secondary" onClick={() => approve(event.id)}>
+                      Одобрить
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -1,7 +1,7 @@
 'use client';
 
-import axios from 'axios';
 import { useEffect, useState } from 'react';
+import { api } from '../auth/utils';
 
 interface UserRow {
   id: string;
@@ -27,8 +27,8 @@ export default function AdminPage() {
   const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
-    axios
-      .get<UserRow[]>('http://localhost:8080/admin/users', {
+    api
+      .get<UserRow[]>('/admin/users', {
         headers: { 'X-Role': 'ADMIN' },
         params: {
           query,
@@ -50,8 +50,8 @@ export default function AdminPage() {
 
   const saveEdit = async () => {
     if (!editing) return;
-    await axios.patch(
-      `http://localhost:8080/admin/users/${editing.id}`,
+    await api.patch(
+      `/admin/users/${editing.id}`,
       { fullName: editFullName, role: editRole, status: editStatus },
       { headers: { 'X-Role': 'ADMIN' } },
     );
@@ -66,8 +66,8 @@ export default function AdminPage() {
 
   const submitReset = async () => {
     if (!resetTarget) return;
-    await axios.post(
-      `http://localhost:8080/admin/users/${resetTarget.id}/reset-password`,
+    await api.post(
+      `/admin/users/${resetTarget.id}/reset-password`,
       { newPassword },
       { headers: { 'X-Role': 'ADMIN' } },
     );
@@ -75,7 +75,7 @@ export default function AdminPage() {
   };
 
   const deleteUser = async (id: string) => {
-    await axios.delete(`http://localhost:8080/admin/users/${id}`, { headers: { 'X-Role': 'ADMIN' } });
+    await api.delete(`/admin/users/${id}`, { headers: { 'X-Role': 'ADMIN' } });
     setQuery((q) => q + '');
   };
 

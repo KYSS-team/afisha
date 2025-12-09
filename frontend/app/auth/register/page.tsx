@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api, emailRegex, fullNameRegex, passwordMeetsRules } from '../utils';
 
 export default function RegisterPage() {
@@ -12,6 +13,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const router = useRouter();
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
@@ -32,6 +34,8 @@ export default function RegisterPage() {
       const res = await api.post('/auth/register', { fullName, email, password, confirmPassword });
       setMessage(res.data?.message ?? 'Регистрация успешно создана. Проверьте почту для подтверждения.');
       setRegistered(true);
+      localStorage.setItem('pendingEmail', email);
+      router.push(`/auth/verify?email=${encodeURIComponent(email)}`);
     } catch (e: any) {
       setMessage(e.response?.data?.message ?? 'Ошибка регистрации');
     } finally {
@@ -89,9 +93,7 @@ export default function RegisterPage() {
           {registered ? 'Проверьте почту' : loading ? 'Отправляем...' : 'Зарегистрироваться'}
         </button>
       </form>
-      <p className="text-sm text-slate-600">
-        После регистрации подтвердите почту на странице <a className="link" href="/auth/verify">/auth/verify</a>.
-      </p>
+      <p className="text-sm text-slate-600">Мы сразу отправим вас на ввод кода подтверждения.</p>
       {message && <div className="text-sm" role="alert">{message}</div>}
     </div>
   );

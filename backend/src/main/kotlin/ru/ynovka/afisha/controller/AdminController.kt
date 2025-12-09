@@ -27,6 +27,8 @@ import ru.ynovka.afisha.repository.EventParticipantRepository
 import ru.ynovka.afisha.repository.EventRepository
 import ru.ynovka.afisha.repository.UserRepository
 import ru.ynovka.afisha.service.AuthService
+import ru.ynovka.afisha.service.EventCreateRequest
+import ru.ynovka.afisha.service.EventService
 import ru.ynovka.afisha.service.ValidationRules
 import ru.ynovka.afisha.service.MailService
 import java.time.Instant
@@ -43,7 +45,8 @@ class AdminController(
     private val participantRepository: EventParticipantRepository,
     private val authService: AuthService,
     private val passwordEncoder: PasswordEncoder,
-    private val mailService: MailService
+    private val mailService: MailService,
+    private val eventService: EventService,
 ) {
     @GetMapping("/users")
     fun users(
@@ -141,7 +144,8 @@ class AdminController(
         @RequestBody body: UpsertEventRequest
     ): ResponseEntity<EventDetails> {
         ensureAdmin(roleHeader)
-        val event = eventRepository.save(body.toEvent())
+        val creatorId = body.createdBy ?: resolveAdminCreatorId()
+        val event = eventService.createEvent(body.toCreateRequest(), creatorId)
         val participants = syncParticipants(event.id!!, body.participantIds)
         return ResponseEntity.ok(EventDetails(event, participants))
     }
@@ -154,16 +158,8 @@ class AdminController(
     ): ResponseEntity<EventDetails> {
         ensureAdmin(roleHeader)
         val existing = eventRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
-        existing.title = body.title
-        existing.shortDescription = body.shortDescription
-        existing.fullDescription = body.fullDescription
-        existing.startAt = body.startAt
-        existing.endAt = body.endAt
-        existing.imageUrl = body.imageUrl
-        existing.paymentInfo = body.paymentInfo
-        existing.maxParticipants = body.maxParticipants
-        existing.status = body.status
-        val saved = eventRepository.save(existing)
+        eventService.updateEvent(id, body.toCreateRequest(existing.status))
+        val saved = eventRepository.findById(id).orElseThrow()
         val participants = syncParticipants(id, body.participantIds)
         return ResponseEntity.ok(EventDetails(saved, participants))
     }
@@ -216,6 +212,10 @@ class AdminController(
         }
     }
 
+    private fun resolveAdminCreatorId(): UUID =
+        userRepository.findAll().firstOrNull { it.role == UserRole.ADMIN }?.id
+            ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Создайте администратора" )
+
     private fun syncParticipants(eventId: UUID, requested: List<UUID>?): List<EventParticipant> {
         val existing = participantRepository.findByEventId(eventId)
         val desired = requested?.toSet() ?: emptySet()
@@ -248,24 +248,26 @@ data class UpsertEventRequest(
     val fullDescription: String,
     val startAt: LocalDateTime,
     val endAt: LocalDateTime,
-    val imageUrl: String,
+    val imageBase64: String?,
+    val imageType: String?,
     val paymentInfo: String?,
     val maxParticipants: Int?,
-    val status: EventStatus = EventStatus.ACTIVE,
+    val status: EventStatus? = EventStatus.ACTIVE,
     val createdBy: UUID?,
     val participantIds: List<UUID>? = emptyList()
 ) {
-    fun toEvent(): Event = Event(
+    fun toCreateRequest(currentStatus: EventStatus? = null) = EventCreateRequest(
         title = title,
         shortDescription = shortDescription,
         fullDescription = fullDescription,
         startAt = startAt,
         endAt = endAt,
-        imageUrl = imageUrl,
+        imageBase64 = imageBase64,
+        imageType = imageType,
         paymentInfo = paymentInfo,
         maxParticipants = maxParticipants,
-        status = status,
-        createdBy = createdBy ?: UUID.randomUUID()
+        participantIds = participantIds ?: emptyList(),
+        status = status ?: currentStatus
     )
 }
 

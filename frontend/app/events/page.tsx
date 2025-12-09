@@ -1,7 +1,7 @@
 'use client';
 
-import axios from 'axios';
 import { useEffect, useState } from 'react';
+import { api, API_BASE_URL } from '../auth/utils';
 
 interface EventCard {
   id: string;
@@ -12,7 +12,7 @@ interface EventCard {
   endAt: string;
   imageUrl: string;
   paymentInfo?: string;
-  status: 'ACTIVE' | 'PAST' | 'REJECTED';
+  status: 'ACTIVE' | 'PAST' | 'REJECTED' | 'PENDING';
   maxParticipants?: number;
   createdBy: string;
   participantsCount?: number;
@@ -40,7 +40,7 @@ export default function EventsPage() {
 
   useEffect(() => {
     setLoading(true);
-    axios
+    api
       .get<EventCard[] | { events?: EventCard[] }>(`/events`, {
         params: { tab, userId: userId || undefined }
       })
@@ -81,29 +81,38 @@ export default function EventsPage() {
     const mapping: Record<string, string> = {
       ACTIVE: 'badge green',
       PAST: 'badge gray',
-      REJECTED: 'badge red'
+      REJECTED: 'badge red',
+      PENDING: 'badge amber'
     };
-    return <span className={mapping[status]}> {status} </span>;
+    return <span className={mapping[status] || 'badge gray'}> {status} </span>;
   };
 
-    return (
-      <div className="space-y-4">
+  const cardImage = (eventId: string) => `${API_BASE_URL}/events/${eventId}/image`;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="tabs">
-          {(
-            [
+          {([
             { key: 'my', label: 'Мои события' },
             { key: 'active', label: 'Активные' },
             { key: 'past', label: 'Прошедшие' }
-          ] as const
-        ).map((item) => (
-          <button
-            key={item.key}
-            className={`tab ${tab === item.key ? 'active' : ''}`}
-            onClick={() => setTab(item.key)}
-          >
-            {item.label}
-          </button>
-        ))}
+          ] as const).map((item) => (
+            <button
+              key={item.key}
+              className={`tab ${tab === item.key ? 'active' : ''}`}
+              onClick={() => setTab(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {userId && (
+          <a className="btn" href="/events/new">
+            Создать событие
+          </a>
+        )}
       </div>
 
       {events.length === 0 && !loading && <div className="card">{emptyStateByTab[tab]}</div>}
@@ -111,7 +120,7 @@ export default function EventsPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {events.map((event) => (
-          <a key={event.id} href={`/events/${event.id}`} className="card space-y-2">
+          <a key={event.id} href={`/events/${event.id}`} className="card space-y-2 hover:-translate-y-1 transition-transform">
             <div className="flex items-center justify-between gap-2">
               <div className="text-lg font-semibold">{event.title}</div>
               <div className="flex items-center gap-2">
@@ -123,14 +132,18 @@ export default function EventsPage() {
                 )}
               </div>
             </div>
-            <img
-              src={event.imageUrl}
-              alt={`Изображение события ${event.title}`}
-              className="w-full rounded-lg object-cover"
-              style={{ maxHeight: 180 }}
-            />
-            <div className="text-sm text-slate-600">{event.shortDescription ?? event.fullDescription}</div>
-            <div className="flex items-center justify-between text-sm" title={`Начало: ${event.startAt}\nОкончание: ${event.endAt}${event.paymentInfo ? `\nОплата: ${event.paymentInfo}` : ''}`}>
+            <div className="overflow-hidden rounded-lg border bg-slate-50">
+              <img
+                src={cardImage(event.id)}
+                alt={`Изображение события ${event.title}`}
+                className="w-full h-48 object-cover"
+              />
+            </div>
+            <div className="text-sm text-slate-600 line-clamp-2">{event.shortDescription ?? event.fullDescription}</div>
+            <div
+              className="flex items-center justify-between text-sm"
+              title={`Начало: ${event.startAt}\nОкончание: ${event.endAt}${event.paymentInfo ? `\nОплата: ${event.paymentInfo}` : ''}`}
+            >
               <span>{event.startAt} — {event.endAt}</span>
               <span className="text-slate-700">
                 Участники: {event.participantsCount ?? 0}

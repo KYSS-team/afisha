@@ -2,14 +2,18 @@ package ru.ynovka.afisha.controller
 
 import ru.ynovka.afisha.model.Event
 import ru.ynovka.afisha.model.ParticipationStatus
-import ru.ynovka.afisha.service.EventCreateRequest
-import ru.ynovka.afisha.service.EventService
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
 import java.util.UUID
+import org.springframework.core.io.ByteArrayResource
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import java.util.Base64
+import ru.ynovka.afisha.service.EventCreateRequest
+import ru.ynovka.afisha.service.EventService
 
 @RestController
 @RequestMapping("/events")
@@ -17,6 +21,18 @@ class EventsController(private val service: EventService) {
     @GetMapping
     fun list(@RequestParam(defaultValue = "my") tab: String, @RequestParam(required = false) userId: UUID?): List<Event> =
         service.listEvents(tab, userId)
+
+    @GetMapping("/{id}/image")
+    fun image(@PathVariable id: UUID): ResponseEntity<ByteArrayResource> {
+        val event = service.getEvent(id)
+        val data = event.imageData ?: return ResponseEntity.notFound().build()
+        val contentType = event.imageContentType ?: MediaType.IMAGE_JPEG_VALUE
+        val resource = ByteArrayResource(Base64.getDecoder().decode(data))
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_TYPE, contentType)
+            .contentType(MediaType.parseMediaType(contentType))
+            .body(resource)
+    }
 
     @GetMapping("/{id}")
     fun get(@PathVariable id: UUID): Event = service.getEvent(id)
@@ -69,7 +85,8 @@ data class EventRequest(
     @field:NotBlank val fullDescription: String,
     @field:NotBlank val startAt: String,
     @field:NotBlank val endAt: String,
-    @field:NotBlank val imageUrl: String,
+    val imageBase64: String?,
+    val imageType: String?,
     val paymentInfo: String?,
     val maxParticipants: Int?,
     val participantIds: List<UUID> = emptyList()
@@ -80,7 +97,8 @@ data class EventRequest(
         fullDescription = fullDescription,
         startAt = LocalDateTime.parse(startAt),
         endAt = LocalDateTime.parse(endAt),
-        imageUrl = imageUrl,
+        imageBase64 = imageBase64,
+        imageType = imageType,
         paymentInfo = paymentInfo,
         maxParticipants = maxParticipants,
         participantIds = participantIds
