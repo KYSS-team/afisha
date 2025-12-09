@@ -20,10 +20,12 @@ interface UserRepository : JpaRepository<User, UUID> {
 
 interface EmailVerificationTokenRepository : JpaRepository<EmailVerificationToken, UUID> {
     fun findByCode(code: String): EmailVerificationToken?
+    fun findAllByUserIdAndConsumedAtIsNull(userId: UUID): List<EmailVerificationToken>
 }
 
 interface PasswordResetTokenRepository : JpaRepository<PasswordResetToken, UUID> {
     fun findByToken(token: String): PasswordResetToken?
+    fun findAllByUserIdAndConsumedAtIsNull(userId: UUID): List<PasswordResetToken>
 }
 
 interface EventRepository : JpaRepository<Event, UUID> {

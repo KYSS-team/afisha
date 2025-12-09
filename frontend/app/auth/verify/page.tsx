@@ -1,11 +1,11 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { api, emailRegex, passwordMeetsRules } from '../utils';
+import { api, emailRegex } from '../utils';
 
-export default function LoginPage() {
+export default function VerifyPage() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -13,7 +13,7 @@ export default function LoginPage() {
   const validate = () => {
     const nextErrors: Record<string, string> = {};
     if (!emailRegex.test(email)) nextErrors.email = 'Введите корректный email';
-    if (!passwordMeetsRules(password)) nextErrors.password = 'Пароль должен быть не короче 8 символов и содержать буквы, цифры и спецсимвол';
+    if (code.trim().length !== 6) nextErrors.code = 'Введите 6-значный код из письма';
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -24,10 +24,10 @@ export default function LoginPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await api.post('/auth/login', { email, password });
-      setMessage(res.data?.message ?? 'Вход выполнен. Токены сохранены в cookies.');
+      const res = await api.post('/auth/verify-email', { email, code });
+      setMessage(res.data?.message ?? 'Email подтвержден. Можно войти.');
     } catch (e: any) {
-      setMessage(e.response?.data?.message ?? 'Ошибка входа');
+      setMessage(e.response?.data?.message ?? 'Ошибка подтверждения');
     } finally {
       setLoading(false);
     }
@@ -35,29 +35,21 @@ export default function LoginPage() {
 
   return (
     <div className="card space-y-4 max-w-lg">
-      <h1 className="text-xl font-semibold">Вход</h1>
+      <h1 className="text-xl font-semibold">Подтверждение почты</h1>
       <form className="space-y-3" onSubmit={submit}>
         <div className="space-y-1">
           <input className="input" placeholder="Почта" value={email} onChange={(e) => setEmail(e.target.value)} />
           {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
         </div>
         <div className="space-y-1">
-          <input
-            className="input"
-            placeholder="Пароль"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
+          <input className="input" placeholder="Код из письма" value={code} onChange={(e) => setCode(e.target.value)} />
+          {errors.code && <p className="text-sm text-red-600">{errors.code}</p>}
         </div>
         <button className="btn" type="submit" disabled={loading}>
-          {loading ? 'Входим...' : 'Войти'}
+          {loading ? 'Проверяем...' : 'Подтвердить'}
         </button>
       </form>
-      <a className="link text-sm" href="/auth/reset">
-        Забыли пароль?
-      </a>
+      <p className="text-sm text-slate-600">Введите код из письма, чтобы подтвердить аккаунт перед входом.</p>
       {message && <div className="text-sm" role="alert">{message}</div>}
     </div>
   );

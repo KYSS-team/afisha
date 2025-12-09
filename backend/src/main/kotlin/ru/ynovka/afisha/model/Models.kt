@@ -42,6 +42,11 @@ data class User(
     val registeredAt: Instant = Instant.now(),
 
     @Column(nullable = false)
+    var emailVerified: Boolean = false,
+
+    var emailVerifiedAt: Instant? = null,
+
+    @Column(nullable = false)
     var mustChangePassword: Boolean = false
 )
 

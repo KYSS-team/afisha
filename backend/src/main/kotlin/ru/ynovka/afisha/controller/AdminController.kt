@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.security.crypto.password.PasswordEncoder
 import ru.ynovka.afisha.model.User
 import ru.ynovka.afisha.model.UserRole
 import ru.ynovka.afisha.model.UserStatus
@@ -18,6 +19,7 @@ import ru.ynovka.afisha.repository.EventParticipantRepository
 import ru.ynovka.afisha.repository.EventRepository
 import ru.ynovka.afisha.repository.UserRepository
 import ru.ynovka.afisha.service.AuthService
+import ru.ynovka.afisha.service.ValidationRules
 import java.time.Instant
 import java.util.UUID
 
@@ -27,7 +29,8 @@ class AdminController(
     private val userRepository: UserRepository,
     private val eventRepository: EventRepository,
     private val participantRepository: EventParticipantRepository,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val passwordEncoder: PasswordEncoder,
 ) {
     @GetMapping("/users")
     fun users(
@@ -52,7 +55,8 @@ class AdminController(
     @PostMapping("/users/{id}/reset-password")
     fun resetPassword(@PathVariable id: UUID, @RequestBody body: AdminResetRequest): ResponseEntity<Map<String, Any>> {
         val user = userRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
-        user.password = body.newPassword
+        ValidationRules.validatePassword(body.newPassword)
+        user.password = passwordEncoder.encode(body.newPassword)
         user.mustChangePassword = true
         userRepository.save(user)
         authService.seedAdminIfMissing()
