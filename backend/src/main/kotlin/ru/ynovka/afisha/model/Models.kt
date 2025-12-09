@@ -121,10 +121,6 @@ data class Event(
 
     var imageContentType: String? = null,
 
-    @get:JsonProperty("imageUrl")
-    val imageUrl: String?
-        get() = id?.let { "/events/${it}/image" },
-
     var paymentInfo: String?,
 
     var maxParticipants: Int?,
@@ -135,7 +131,11 @@ data class Event(
 
     @Column(nullable = false)
     val createdBy: UUID
-)
+) {
+    @get:JsonProperty("imageUrl")
+    val imageUrl: String?
+        get() = id?.let { "/events/${it}/image" }
+}
 
 @Entity
 @Table(name = "event_participants")
