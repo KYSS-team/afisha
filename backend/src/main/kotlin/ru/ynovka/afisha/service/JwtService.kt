@@ -14,9 +14,9 @@ import java.util.Date
 
 @Service
 class JwtService(
-    @Value("${app.jwt.secret:ChangeMePleaseChangeMePlease}") private val secret: String,
-    @Value("${app.jwt.access-expiration-ms:900000}") private val accessExpirationMs: Long,
-    @Value("${app.jwt.refresh-expiration-ms:1209600000}") private val refreshExpirationMs: Long,
+    private val secret: String = "fdfgdfgdfgdfr432r3rt54y56y6",
+    private val accessExpirationMs: Long = 900000L,
+    private val refreshExpirationMs: Long = 1209600000L,
 ) {
     private val key: Key = Keys.hmacShaKeyFor(secret.toByteArray(StandardCharsets.UTF_8))
 
