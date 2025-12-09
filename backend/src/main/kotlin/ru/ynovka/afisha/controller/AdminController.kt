@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.security.crypto.password.PasswordEncoder
 import ru.ynovka.afisha.model.User
 import ru.ynovka.afisha.model.UserRole
 import ru.ynovka.afisha.model.UserStatus
@@ -26,6 +27,7 @@ import ru.ynovka.afisha.repository.EventParticipantRepository
 import ru.ynovka.afisha.repository.EventRepository
 import ru.ynovka.afisha.repository.UserRepository
 import ru.ynovka.afisha.service.AuthService
+import ru.ynovka.afisha.service.ValidationRules
 import ru.ynovka.afisha.service.MailService
 import java.time.Instant
 import java.time.LocalDateTime
@@ -40,6 +42,7 @@ class AdminController(
     private val eventRepository: EventRepository,
     private val participantRepository: EventParticipantRepository,
     private val authService: AuthService,
+    private val passwordEncoder: PasswordEncoder,
     private val mailService: MailService
 ) {
     @GetMapping("/users")
@@ -84,7 +87,8 @@ class AdminController(
     ): ResponseEntity<Map<String, Any>> {
         ensureAdmin(roleHeader)
         val user = userRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
-        user.password = body.newPassword
+        ValidationRules.validatePassword(body.newPassword)
+        user.password = passwordEncoder.encode(body.newPassword)
         user.mustChangePassword = true
         userRepository.save(user)
         authService.seedAdminIfMissing()

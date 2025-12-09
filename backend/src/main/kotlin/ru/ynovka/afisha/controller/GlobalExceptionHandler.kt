@@ -1,6 +1,8 @@
 package ru.ynovka.afisha.controller
 
+import io.jsonwebtoken.JwtException
 import jakarta.validation.ValidationException
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -13,6 +15,12 @@ class GlobalExceptionHandler {
     @ExceptionHandler(ValidationException::class)
     fun handleValidation(ex: ValidationException): ResponseEntity<Map<String, String?>> {
         return ResponseEntity.badRequest().body(mapOf("message" to ex.message))
+    }
+
+    @ExceptionHandler(JwtException::class)
+    fun handleJwt(ex: JwtException): ResponseEntity<Map<String, String?>> {
+        val message = ex.message ?: "Неверный токен"
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("message" to message))
     }
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
