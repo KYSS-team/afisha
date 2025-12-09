@@ -132,21 +132,60 @@ export default function EventDetail({ params }: { params: { id: string } }) {
               <div className="text-xs text-slate-500">Свободных мест: {Math.max(0, event.maxParticipants - (event.participantsCount ?? 0))}</div>
             )}
           </div>
-          <div className="flex gap-2">
-            {canConfirm && (
-              <button className="btn" disabled={loading || isFull} onClick={confirm} title={isFull ? 'Достигнут лимит участников' : undefined}>
-                {isFull ? 'Нет мест' : 'Подтвердить участие'}
-              </button>
-            )}
-            {canCancel && (
-              <button className="btn secondary" disabled={loading} onClick={() => setCancelModalOpen(true)}>
-                Отменить участие
-              </button>
-            )}
-          </div>
-          <div className="text-sm">Ваш статус: {status || 'Вы не участвуете'}</div>
+          {userId && (
+            <>
+              <div className="flex gap-2">
+                {canConfirm && (
+                  <button
+                    className="btn"
+                    disabled={loading || isFull}
+                    onClick={confirm}
+                    title={isFull ? 'Достигнут лимит участников' : undefined}
+                  >
+                    {isFull ? 'Нет мест' : 'Подтвердить участие'}
+                  </button>
+                )}
+                {canCancel && (
+                  <button className="btn secondary" disabled={loading} onClick={() => setCancelModalOpen(true)}>
+                    Отменить участие
+                  </button>
+                )}
+              </div>
+              <div className="text-sm">Ваш статус: {status === 'CONFIRMED' ? 'Вы участвуете' : 'Вы не участвуете'}</div>
+            </>
+          )}
         </div>
       </div>
+
+      {event.status === 'PAST' && status === 'CONFIRMED' && (
+        <div className="card space-y-3">
+          <h2 className="text-xl font-semibold">Оставить отзыв</h2>
+          <form className="space-y-2" onSubmit={async (e) => {
+            e.preventDefault();
+            const form = e.target as HTMLFormElement;
+            const score = (form.elements.namedItem('score') as HTMLInputElement).value;
+            const comment = (form.elements.namedItem('comment') as HTMLTextAreaElement).value;
+            try {
+              await api.post(`/events/${params.id}/ratings`, { score: parseInt(score, 10), comment }, { params: { userId } });
+              setMessage({ type: 'success', text: 'Спасибо за ваш отзыв!' });
+            } catch (error: any) {
+              setMessage({ type: 'error', text: error.response?.data?.message ?? 'Не удалось отправить отзыв' });
+            }
+          }}>
+            <div className="flex items-center gap-2">
+              <span>Оценка:</span>
+              {[1, 2, 3, 4, 5].map(star => (
+                <label key={star} className="flex items-center gap-1 cursor-pointer">
+                  <input type="radio" name="score" value={star} required />
+                  <span>{star}⭐</span>
+                </label>
+              ))}
+            </div>
+            <textarea name="comment" className="input" placeholder="Ваш комментарий"></textarea>
+            <button type="submit" className="btn">Отправить</button>
+          </form>
+        </div>
+      )}
 
       {message && (
         <div className={`rounded p-3 ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>

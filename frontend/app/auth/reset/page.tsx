@@ -20,6 +20,7 @@ function ResetForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [stage, setStage] = useState(token ? 'reset' : 'request');
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
@@ -41,13 +42,14 @@ function ResetForm() {
   const requestLink = async (e: FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setError('');
     if (!validateRequest()) return;
     setLoading(true);
     try {
-      const res = await api.post('/auth/forgot-password', { email });
-      setMessage(res.data?.message ?? 'Ссылка на сброс отправлена.');
+      await api.post('/auth/forgot-password', { email });
+      setMessage('Если пользователь с таким email существует, мы отправили на него ссылку для сброса пароля.');
     } catch (e: any) {
-      setMessage(e.response?.data?.message ?? 'Ошибка запроса');
+      setError(e.response?.data?.message ?? 'Не удалось отправить ссылку. Попробуйте позже.');
     } finally {
       setLoading(false);
     }
@@ -56,13 +58,15 @@ function ResetForm() {
   const changePassword = async (e: FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setError('');
     if (!validateReset()) return;
     setLoading(true);
     try {
-      const res = await api.post('/auth/reset-password', { token, password, confirmPassword });
-      setMessage(res.data?.message ?? 'Пароль обновлен. Вернитесь на страницу входа.');
+      await api.post('/auth/reset-password', { token, newPassword: password, confirm: confirmPassword });
+      setMessage('Пароль успешно изменен! Теперь вы можете войти с новым паролем.');
+      setStage('success');
     } catch (e: any) {
-      setMessage(e.response?.data?.message ?? 'Ошибка');
+      setError(e.response?.data?.message ?? 'Ссылка недействительна или истек ее срок.');
     } finally {
       setLoading(false);
     }
@@ -71,8 +75,10 @@ function ResetForm() {
   return (
     <div className="card space-y-4 max-w-lg">
       <h1 className="text-xl font-semibold">Восстановление доступа</h1>
-      {stage === 'request' ? (
+
+      {stage === 'request' && (
         <form className="space-y-3" onSubmit={requestLink}>
+          <p className="text-sm text-slate-600">Введите email, и мы пришлем ссылку для сброса пароля.</p>
           <div className="space-y-1">
             <input className="input" placeholder="Почта" value={email} onChange={(e) => setEmail(e.target.value)} />
             {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
@@ -81,8 +87,11 @@ function ResetForm() {
             {loading ? 'Отправляем...' : 'Отправить ссылку'}
           </button>
         </form>
-      ) : (
+      )}
+
+      {stage === 'reset' && (
         <form className="space-y-3" onSubmit={changePassword}>
+          <p className="text-sm text-slate-600">Придумайте новый пароль.</p>
           <div className="space-y-1">
             <input
               className="input"
@@ -108,7 +117,15 @@ function ResetForm() {
           </button>
         </form>
       )}
-      {message && <div className="text-sm" role="alert">{message}</div>}
+
+      {stage === 'success' && (
+        <a className="link" href="/auth/login">
+          Вернуться ко входу
+        </a>
+      )}
+
+      {message && <div className="text-sm text-green-600" role="alert">{message}</div>}
+      {error && <div className="text-sm text-red-600" role="alert">{error}</div>}
     </div>
   );
 }
