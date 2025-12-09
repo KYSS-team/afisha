@@ -1,5 +1,6 @@
 'use client';
 
+import axios from 'axios';
 import { FormEvent, useState } from 'react';
 import { api, emailRegex, passwordMeetsRules } from '../utils';
 
@@ -31,13 +32,14 @@ export default function LoginPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await api.post('/auth/login', { email, password });
-      setMessage(res.data?.message ?? 'Вход выполнен. Токены сохранены в cookies.');
-      const res = await axios.post<LoginResponse>('http://localhost:8080/auth/login', { email, password });
-      localStorage.setItem('userId', res.data.id);
-      localStorage.setItem('userRole', res.data.role);
-      localStorage.setItem('userName', res.data.fullName);
-      setMessage(`Добро пожаловать, ${res.data.fullName}. Перейдите на страницу событий.`);
+      const loginResponse = await api.post('/auth/login', { email, password });
+      setMessage(loginResponse.data?.message ?? 'Вход выполнен. Токены сохранены в cookies.');
+
+      const userResponse = await axios.post<LoginResponse>('http://localhost:8080/auth/login', { email, password });
+      localStorage.setItem('userId', userResponse.data.id);
+      localStorage.setItem('userRole', userResponse.data.role);
+      localStorage.setItem('userName', userResponse.data.fullName);
+      setMessage(`Добро пожаловать, ${userResponse.data.fullName}. Перейдите на страницу событий.`);
     } catch (e: any) {
       setMessage(e.response?.data?.message ?? 'Ошибка входа');
     } finally {
