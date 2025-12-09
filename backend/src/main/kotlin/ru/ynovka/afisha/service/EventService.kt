@@ -7,6 +7,7 @@ import ru.ynovka.afisha.model.EventParticipant
 import ru.ynovka.afisha.model.EventRating
 import ru.ynovka.afisha.model.EventStatus
 import ru.ynovka.afisha.model.ParticipationStatus
+import ru.ynovka.afisha.model.UserRole
 import ru.ynovka.afisha.repository.EventParticipantRepository
 import ru.ynovka.afisha.repository.EventRatingRepository
 import ru.ynovka.afisha.repository.EventRepository
@@ -14,6 +15,7 @@ import ru.ynovka.afisha.repository.UserRepository
 import java.time.Instant
 import java.time.LocalDateTime
 import java.util.UUID
+import java.util.Base64
 
 @Service
 class EventService(
@@ -30,7 +32,11 @@ class EventService(
             "past" -> events.filter { it.status == EventStatus.PAST }
             else -> userId?.let { uid ->
                 val myEvents = participantRepository.findByUserIdAndStatus(uid, ParticipationStatus.CONFIRMED).map { it.eventId }.toSet()
-                events.filter { it.id in myEvents && it.status != EventStatus.REJECTED }
+                events.filter {
+                    (it.id in myEvents || it.createdBy == uid) &&
+                        it.status != EventStatus.REJECTED &&
+                        (it.status != EventStatus.PENDING || it.createdBy == uid)
+                }
             } ?: emptyList()
         }.sortedBy { it.startAt }
     }
@@ -68,26 +74,29 @@ class EventService(
     }
 
     fun createEvent(dto: EventCreateRequest, creatorId: UUID): Event {
+        val creator = userRepository.findById(creatorId).orElseThrow { ValidationException("Создатель не найден") }
         validateDates(dto.startAt, dto.endAt)
-        val event = eventRepository.save(
-            Event(
-                title = dto.title,
-                shortDescription = dto.shortDescription,
-                fullDescription = dto.fullDescription,
-                startAt = dto.startAt,
-                endAt = dto.endAt,
-                imageUrl = dto.imageUrl,
-                paymentInfo = dto.paymentInfo,
-                maxParticipants = dto.maxParticipants,
-                createdBy = creatorId
-            )
+        val event = Event(
+            title = dto.title,
+            shortDescription = dto.shortDescription,
+            fullDescription = dto.fullDescription,
+            startAt = dto.startAt,
+            endAt = dto.endAt,
+            imageData = null,
+            imageContentType = null,
+            paymentInfo = dto.paymentInfo,
+            maxParticipants = dto.maxParticipants,
+            status = resolveStatus(creator.role, dto.status),
+            createdBy = creatorId
         )
+        applyImage(event, dto.imageBase64, dto.imageType, required = true)
+        val saved = eventRepository.save(event)
         dto.participantIds.forEach { userId ->
-            participantRepository.save(EventParticipant(eventId = event.id!!, userId = userId))
+            participantRepository.save(EventParticipant(eventId = saved.id!!, userId = userId))
             val email = userRepository.findById(userId).map { it.email }.orElse(userId.toString())
             mailService.send(email, "Новое событие", "Вас пригласили на ${event.title}")
         }
-        return event
+        return saved
     }
 
     fun updateEvent(id: UUID, dto: EventCreateRequest) {
@@ -98,9 +107,10 @@ class EventService(
         event.fullDescription = dto.fullDescription
         event.startAt = dto.startAt
         event.endAt = dto.endAt
-        event.imageUrl = dto.imageUrl
         event.paymentInfo = dto.paymentInfo
         event.maxParticipants = dto.maxParticipants
+        dto.status?.let { event.status = it }
+        applyImage(event, dto.imageBase64, dto.imageType, required = false)
         refreshStatus(event)
         eventRepository.save(event)
         mailService.send(event.createdBy.toString(), "Событие обновлено", "Изменены данные события ${event.title}")
@@ -136,7 +146,7 @@ class EventService(
 
     private fun refreshStatus(event: Event, current: LocalDateTime = LocalDateTime.now()): Event {
         val newStatus = when {
-            event.status == EventStatus.REJECTED -> EventStatus.REJECTED
+            event.status == EventStatus.REJECTED || event.status == EventStatus.PENDING -> event.status
             current.isAfter(event.endAt) -> EventStatus.PAST
             current.isBefore(event.startAt) || current.isEqual(event.startAt) -> EventStatus.ACTIVE
             else -> event.status
@@ -147,6 +157,35 @@ class EventService(
         }
         return event
     }
+
+    private fun resolveStatus(role: UserRole, requested: EventStatus?): EventStatus =
+        if (role == UserRole.ADMIN) requested ?: EventStatus.ACTIVE else EventStatus.PENDING
+
+    private fun applyImage(event: Event, imageBase64: String?, imageType: String?, required: Boolean) {
+        if (imageBase64.isNullOrBlank()) {
+            if (required && event.imageData.isNullOrBlank()) throw ValidationException("Требуется изображение")
+            return
+        }
+
+        if (imageType.isNullOrBlank() || !imageType.startsWith("image/")) {
+            throw ValidationException("Поддерживаются только изображения")
+        }
+
+        val decoded = try {
+            Base64.getDecoder().decode(imageBase64)
+        } catch (ex: IllegalArgumentException) {
+            throw ValidationException("Некорректные данные изображения")
+        }
+
+        if (decoded.size > MAX_IMAGE_SIZE_BYTES) throw ValidationException("Размер изображения не должен превышать 2 МБ")
+
+        event.imageData = Base64.getEncoder().encodeToString(decoded)
+        event.imageContentType = imageType
+    }
+
+    companion object {
+        private const val MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024
+    }
 }
 
 data class EventCreateRequest(
@@ -155,8 +194,10 @@ data class EventCreateRequest(
     val fullDescription: String,
     val startAt: LocalDateTime,
     val endAt: LocalDateTime,
-    val imageUrl: String,
+    val imageBase64: String?,
+    val imageType: String?,
     val paymentInfo: String?,
     val maxParticipants: Int?,
-    val participantIds: List<UUID> = emptyList()
+    val participantIds: List<UUID> = emptyList(),
+    val status: EventStatus? = null,
 )

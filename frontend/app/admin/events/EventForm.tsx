@@ -1,8 +1,8 @@
 'use client';
 
-import axios from 'axios';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { api, API_BASE_URL } from '../../auth/utils';
 
 export interface AdminEventFormProps {
   eventId?: string;
@@ -14,7 +14,9 @@ interface UpsertEvent {
   fullDescription: string;
   startAt: string;
   endAt: string;
-  imageUrl: string;
+  imagePreview: string;
+  imageBase64?: string;
+  imageType?: string;
   paymentInfo: string;
   maxParticipants: number | '';
   status: string;
@@ -33,7 +35,7 @@ export function EventForm({ eventId }: AdminEventFormProps) {
     fullDescription: '',
     startAt: '',
     endAt: '',
-    imageUrl: '',
+    imagePreview: '',
     paymentInfo: '',
     maxParticipants: '',
     status: 'ACTIVE',
@@ -42,8 +44,8 @@ export function EventForm({ eventId }: AdminEventFormProps) {
   const [users, setUsers] = useState<UserOption[]>([]);
 
   useEffect(() => {
-    axios
-      .get<UserOption[]>('http://localhost:8080/admin/users', {
+    api
+      .get<UserOption[]>('/admin/users', {
         headers: { 'X-Role': 'ADMIN' },
       })
       .then((res) => setUsers(res.data));
@@ -51,8 +53,8 @@ export function EventForm({ eventId }: AdminEventFormProps) {
 
   useEffect(() => {
     if (!eventId) return;
-    axios
-      .get(`http://localhost:8080/admin/events/${eventId}`, { headers: { 'X-Role': 'ADMIN' } })
+    api
+      .get(`/admin/events/${eventId}`, { headers: { 'X-Role': 'ADMIN' } })
       .then((res) => {
         const { event, participants } = res.data;
         setForm({
@@ -61,7 +63,7 @@ export function EventForm({ eventId }: AdminEventFormProps) {
           fullDescription: event.fullDescription,
           startAt: event.startAt?.replace(' ', 'T') ?? '',
           endAt: event.endAt?.replace(' ', 'T') ?? '',
-          imageUrl: event.imageUrl,
+          imagePreview: `${API_BASE_URL}/events/${eventId}/image`,
           paymentInfo: event.paymentInfo ?? '',
           maxParticipants: event.maxParticipants ?? '',
           status: event.status,
@@ -72,18 +74,28 @@ export function EventForm({ eventId }: AdminEventFormProps) {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!eventId && !form.imageBase64) {
+      alert('Добавьте изображение события');
+      return;
+    }
     const payload = {
-      ...form,
+      title: form.title,
+      shortDescription: form.shortDescription,
+      fullDescription: form.fullDescription,
       maxParticipants: form.maxParticipants === '' ? null : Number(form.maxParticipants),
-      startAt: new Date(form.startAt),
-      endAt: new Date(form.endAt),
+      startAt: form.startAt,
+      endAt: form.endAt,
       participantIds: form.participantIds,
+      imageBase64: form.imageBase64 || undefined,
+      imageType: form.imageType || undefined,
       createdBy: undefined,
+      status: form.status,
+      paymentInfo: form.paymentInfo,
     };
     if (eventId) {
-      await axios.put(`http://localhost:8080/admin/events/${eventId}`, payload, { headers: { 'X-Role': 'ADMIN' } });
+      await api.put(`/admin/events/${eventId}`, payload, { headers: { 'X-Role': 'ADMIN' } });
     } else {
-      await axios.post('http://localhost:8080/admin/events', payload, { headers: { 'X-Role': 'ADMIN' } });
+      await api.post('/admin/events', payload, { headers: { 'X-Role': 'ADMIN' } });
     }
     window.location.href = '/admin/events';
   };
@@ -99,6 +111,18 @@ export function EventForm({ eventId }: AdminEventFormProps) {
         ? prev.participantIds.filter((p) => p !== id)
         : [...prev.participantIds, id],
     }));
+  };
+
+  const handleFile = (file: File) => {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return alert('Файл должен быть меньше 2 МБ');
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1];
+      setForm((prev) => ({ ...prev, imageBase64: base64, imageType: file.type, imagePreview: result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -121,6 +145,7 @@ export function EventForm({ eventId }: AdminEventFormProps) {
             <option value="ACTIVE">ACTIVE</option>
             <option value="PAST">PAST</option>
             <option value="REJECTED">REJECTED</option>
+            <option value="PENDING">PENDING</option>
           </select>
         </label>
       </div>
@@ -146,10 +171,18 @@ export function EventForm({ eventId }: AdminEventFormProps) {
         </label>
       </div>
 
-      <label className="flex flex-col gap-2">
-        <span className="text-sm">URL изображения</span>
-        <input className="input" value={form.imageUrl} onChange={(e) => updateField('imageUrl', e.target.value)} required />
-      </label>
+      <div className="flex flex-col gap-2">
+        <span className="text-sm">Баннер события</span>
+        <label className="upload">
+          <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+          <span>{form.imagePreview ? 'Заменить изображение' : 'Загрузить изображение (до 2 МБ)'}</span>
+        </label>
+        {form.imagePreview && (
+          <div className="rounded-lg border p-2 bg-slate-50">
+            <img src={form.imagePreview} alt="Превью баннера" className="w-full max-h-56 object-cover rounded" />
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="flex flex-col gap-2">

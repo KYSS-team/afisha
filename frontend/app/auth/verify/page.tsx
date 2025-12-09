@@ -1,7 +1,13 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api, emailRegex } from '../utils';
+
+interface VerifyResponse {
+  message: string;
+  user: { id: string; fullName: string; email: string; role: string };
+}
 
 export default function VerifyPage() {
   const [email, setEmail] = useState('');
@@ -9,6 +15,8 @@ export default function VerifyPage() {
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const params = useSearchParams();
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
@@ -18,14 +26,25 @@ export default function VerifyPage() {
     return Object.keys(nextErrors).length === 0;
   };
 
+  useEffect(() => {
+    const presetEmail = params.get('email') || localStorage.getItem('pendingEmail') || '';
+    if (presetEmail) setEmail(presetEmail);
+  }, [params]);
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setMessage('');
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await api.post('/auth/verify-email', { email, code });
-      setMessage(res.data?.message ?? 'Email подтвержден. Можно войти.');
+      const res = await api.post<VerifyResponse>('/auth/verify-email', { email, code });
+      const user = res.data.user;
+      localStorage.setItem('userId', user.id);
+      localStorage.setItem('userRole', user.role);
+      localStorage.setItem('userName', user.fullName);
+      localStorage.removeItem('pendingEmail');
+      setMessage(res.data?.message ?? 'Email подтвержден.');
+      setTimeout(() => router.push('/events'), 500);
     } catch (e: any) {
       setMessage(e.response?.data?.message ?? 'Ошибка подтверждения');
     } finally {

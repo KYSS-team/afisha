@@ -1,11 +1,14 @@
 package ru.ynovka.afisha.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
+import jakarta.persistence.Lob
 import jakarta.persistence.Table
 import java.time.Instant
 import java.time.LocalDateTime
@@ -88,7 +91,7 @@ data class PasswordResetToken(
     var consumedAt: Instant? = null
 )
 
-enum class EventStatus { ACTIVE, PAST, REJECTED }
+enum class EventStatus { ACTIVE, PAST, REJECTED, PENDING }
 enum class ParticipationStatus { CONFIRMED, CANCELLED }
 
 @Entity
@@ -112,8 +115,15 @@ data class Event(
     @Column(nullable = false)
     var endAt: LocalDateTime,
 
-    @Column(nullable = false)
-    var imageUrl: String,
+    @get:JsonIgnore
+    @Lob
+    var imageData: String? = null,
+
+    var imageContentType: String? = null,
+
+    @get:JsonProperty("imageUrl")
+    val imageUrl: String?
+        get() = id?.let { "/events/${it}/image" },
 
     var paymentInfo: String?,
 

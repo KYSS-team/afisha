@@ -52,7 +52,7 @@ class AuthService(
         return user.toProfile()
     }
 
-    fun verifyEmail(email: String, code: String): Boolean {
+    fun verifyEmail(email: String, code: String): AuthResult {
         val user = userRepository.findByEmailIgnoreCase(email) ?: throw ValidationException("Пользователь не найден")
         val token = verificationTokenRepository.findByCode(code) ?: throw ValidationException("Неверный код")
         if (token.userId != user.id) throw ValidationException("Неверный код")
@@ -68,7 +68,9 @@ class AuthService(
         userRepository.save(user)
 
         mailService.send(user.email, "Регистрация подтверждена", "Добро пожаловать, ${'$'}{user.fullName}")
-        return true
+        val accessToken = jwtService.generateAccessToken(user)
+        val refreshToken = jwtService.generateRefreshToken(user)
+        return AuthResult(user.toProfile(), AuthTokens(accessToken, refreshToken))
     }
 
     fun login(email: String, password: String): AuthResult {

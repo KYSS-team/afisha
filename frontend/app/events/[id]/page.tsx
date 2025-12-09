@@ -1,7 +1,7 @@
 'use client';
 
-import axios from 'axios';
 import { useEffect, useState } from 'react';
+import { api, API_BASE_URL } from '../../auth/utils';
 
 interface EventCard {
   id: string;
@@ -12,7 +12,7 @@ interface EventCard {
   endAt: string;
   imageUrl: string;
   paymentInfo?: string;
-  status: 'ACTIVE' | 'PAST' | 'REJECTED';
+  status: 'ACTIVE' | 'PAST' | 'REJECTED' | 'PENDING';
   maxParticipants?: number;
   participantsCount?: number;
   createdBy?: string;
@@ -31,12 +31,12 @@ export default function EventDetail({ params }: { params: { id: string } }) {
   }, []);
 
   useEffect(() => {
-    axios.get<EventCard>(`/events/${params.id}`).then((res) => setEvent(res.data));
+    api.get<EventCard>(`/events/${params.id}`).then((res) => setEvent(res.data));
   }, [params.id]);
 
   useEffect(() => {
     if (!userId) return;
-    axios.get(`/events/${params.id}/status`, { params: { userId } }).then((res) => setStatus(res.data || 'NONE'));
+    api.get(`/events/${params.id}/status`, { params: { userId } }).then((res) => setStatus(res.data || 'NONE'));
   }, [params.id, userId]);
 
   const broadcastUpdate = () => {
@@ -49,7 +49,7 @@ export default function EventDetail({ params }: { params: { id: string } }) {
     if (!userId) return;
     setLoading(true);
     try {
-      await axios.post(`/events/${params.id}/confirm`, null, { params: { userId } });
+      await api.post(`/events/${params.id}/confirm`, null, { params: { userId } });
       setMessage({ type: 'success', text: 'Участие подтверждено' });
       setStatus('CONFIRMED');
       setEvent((prev) => (prev ? { ...prev, participantsCount: (prev.participantsCount ?? 0) + 1 } : prev));
@@ -64,7 +64,7 @@ export default function EventDetail({ params }: { params: { id: string } }) {
     if (!userId) return;
     setLoading(true);
     try {
-      await axios.post(`/events/${params.id}/cancel`, null, { params: { userId } });
+      await api.post(`/events/${params.id}/cancel`, null, { params: { userId } });
       setMessage({ type: 'success', text: 'Участие отменено' });
       setStatus('CANCELLED');
       setEvent((prev) =>
@@ -100,11 +100,16 @@ export default function EventDetail({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <img src={event.imageUrl} alt="Изображение события" className="w-full rounded-xl object-cover" />
+      <img src={`${API_BASE_URL}/events/${event.id}/image`} alt="Изображение события" className="w-full rounded-xl object-cover" />
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-2">
           <p className="text-slate-700">{event.fullDescription}</p>
+          {event.status === 'PENDING' && (
+            <div className="badge amber" title="На рассмотрении администратором">
+              Модерация
+            </div>
+          )}
           {event.paymentInfo && (
             <div className="bg-slate-100 p-3 rounded" title="Информация об оплате">
               {event.paymentInfo}
