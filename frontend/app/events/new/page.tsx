@@ -33,7 +33,15 @@ export default function NewEventPage() {
   const router = useRouter();
 
   useEffect(() => {
-    setUserId(localStorage.getItem('userId') ?? '');
+    const savedUserId = localStorage.getItem('userId') ?? '';
+    const isValidUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+    if (savedUserId && isValidUuid.test(savedUserId)) {
+      setUserId(savedUserId);
+    } else {
+      localStorage.removeItem('userId');
+      setUserId('');
+    }
   }, []);
 
   const handleFile = (file: File) => {
