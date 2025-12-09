@@ -20,3 +20,9 @@
 2. Инициализировать backend-проект Spring Boot (Gradle Kotlin DSL) согласно структуре из `docs/architecture.md`.
 3. Инициализировать фронтенд Next.js с маршрутизатором App Router и Tailwind/Chakra UI; реализовать страницы аутентификации и список событий по схемам из документации.
 4. Настроить CI: линтеры, unit/integration тесты, сборка Docker для двух сервисов.
+
+## Быстрый старт
+- Backend: `cd backend && gradle bootRun` (или `gradle test`), используется in-memory хранилище и моковые письма через логгер.
+- Frontend: `cd frontend && npm install && npm run dev` с прокси на backend (`NEXT_PUBLIC_API_BASE` можно настроить через proxy/rewrites).
+
+MVP покрывает основные сценарии: регистрация с верификацией, вход, восстановление пароля, вкладки событий, карточка события, базовые экраны администрирования и экспорт участников (CSV-список в ответе API).
