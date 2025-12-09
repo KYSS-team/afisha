@@ -3,6 +3,13 @@
 import axios from 'axios';
 import { useState } from 'react';
 
+interface LoginResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -10,7 +17,10 @@ export default function LoginPage() {
 
   const submit = async () => {
     try {
-      const res = await axios.post('http://localhost:8080/auth/login', { email, password });
+      const res = await axios.post<LoginResponse>('http://localhost:8080/auth/login', { email, password });
+      localStorage.setItem('userId', res.data.id);
+      localStorage.setItem('userRole', res.data.role);
+      localStorage.setItem('userName', res.data.fullName);
       setMessage(`Добро пожаловать, ${res.data.fullName}. Перейдите на страницу событий.`);
     } catch (e: any) {
       setMessage(e.response?.data?.message ?? 'Ошибка входа');
