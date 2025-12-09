@@ -5,15 +5,12 @@ import { useRouter } from 'next/navigation';
 import { api, emailRegex, passwordMeetsRules } from '../utils';
 
 interface AuthResponse {
+  message: string;
   user: {
     id: string;
     fullName: string;
     email: string;
     role: string;
-  };
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
   };
 }
 
@@ -36,12 +33,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const { data } = await api.post<AuthResponse>('/auth/login', { email, password });
-      localStorage.setItem('accessToken', data.tokens.accessToken);
-      localStorage.setItem('refreshToken', data.tokens.refreshToken);
       localStorage.setItem('userId', data.user.id);
       localStorage.setItem('userRole', data.user.role);
       localStorage.setItem('userName', data.user.fullName);
-      setMessage(`Добро пожаловать, ${data.user.fullName}! Перенаправляем...`);
+      setMessage(data.message || `Добро пожаловать, ${data.user.fullName}! Перенаправляем...`);
       router.push('/events');
     } catch (e: any) {
       setError(e.response?.data?.message ?? 'Неверные учетные данные');
