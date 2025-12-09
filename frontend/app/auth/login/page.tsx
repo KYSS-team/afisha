@@ -3,6 +3,13 @@
 import { FormEvent, useState } from 'react';
 import { api, emailRegex, passwordMeetsRules } from '../utils';
 
+interface LoginResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,6 +33,11 @@ export default function LoginPage() {
     try {
       const res = await api.post('/auth/login', { email, password });
       setMessage(res.data?.message ?? 'Вход выполнен. Токены сохранены в cookies.');
+      const res = await axios.post<LoginResponse>('http://localhost:8080/auth/login', { email, password });
+      localStorage.setItem('userId', res.data.id);
+      localStorage.setItem('userRole', res.data.role);
+      localStorage.setItem('userName', res.data.fullName);
+      setMessage(`Добро пожаловать, ${res.data.fullName}. Перейдите на страницу событий.`);
     } catch (e: any) {
       setMessage(e.response?.data?.message ?? 'Ошибка входа');
     } finally {

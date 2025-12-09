@@ -33,6 +33,7 @@ interface EventRepository : JpaRepository<Event, UUID> {
 }
 
 interface EventParticipantRepository : JpaRepository<EventParticipant, UUID> {
+    fun findByEventId(eventId: UUID): List<EventParticipant>
     fun findByEventIdAndStatus(eventId: UUID, status: ParticipationStatus): List<EventParticipant>
     fun findByUserIdAndStatus(userId: UUID, status: ParticipationStatus): List<EventParticipant>
     fun findByEventIdAndUserId(eventId: UUID, userId: UUID): EventParticipant?
