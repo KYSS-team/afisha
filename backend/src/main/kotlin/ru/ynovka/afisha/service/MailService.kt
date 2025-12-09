@@ -14,10 +14,11 @@ class MailService(private val mailSender: JavaMailSender) {
             setTo(to)
             this.subject = subject
             text = body
+            from = "no-reply@myshore.ru"
         }
         try {
             mailSender.send(message)
-            logger.info("Sent mail to={} subject={}", to, subject)
+            logger.info("Sent mail to={} subject={} body={}", to, subject, body)
         } catch (ex: Exception) {
             logger.error("Failed to send email to {}: {}", to, ex.message)
             throw ex

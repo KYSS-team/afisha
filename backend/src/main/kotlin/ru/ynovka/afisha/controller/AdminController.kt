@@ -69,14 +69,13 @@ class AdminController(
 
     @GetMapping("/events")
     fun events(): List<Map<String, Any>> = eventRepository.findAll().map { event ->
-        mapOf(
-            "id" to event.id,
+        mapOf<String, Any>(
+            "id" to event.id!!,
             "title" to event.title,
             "status" to event.status,
             "startAt" to event.startAt,
             "endAt" to event.endAt,
-            "participants" to (event.id?.let { participantRepository.countByEventIdAndStatus(it, ru.ynovka.afisha.model.ParticipationStatus.CONFIRMED) }
-                ?: 0)
+            "participants" to (event.id.let { participantRepository.countByEventIdAndStatus(it, ru.ynovka.afisha.model.ParticipationStatus.CONFIRMED) })
         )
     }
 }

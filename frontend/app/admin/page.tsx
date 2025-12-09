@@ -17,7 +17,7 @@ export default function AdminPage() {
   const [query, setQuery] = useState('');
 
   useEffect(() => {
-    axios.get<UserRow[]>('/admin/users', { params: { query } }).then((res) => setUsers(res.data));
+    axios.get<UserRow[]>('http://localhost:8080/admin/users', { params: { query } }).then((res) => setUsers(res.data));
   }, [query]);
 
   return (

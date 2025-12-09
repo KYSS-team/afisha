@@ -25,7 +25,7 @@ class AuthService(
     fun register(fullName: String, email: String, password: String, confirm: String): User {
         ValidationRules.validateFullName(fullName)
         ValidationRules.validatePassword(password)
-        if (password != confirm) throw ValidationException("Па  роли не совпадают")
+        if (password != confirm) throw ValidationException("Пароли не совпадают")
         if (userRepository.existsByEmailIgnoreCase(email)) throw ValidationException("Пользователь с таким email уже существует")
         val user = userRepository.save(User(fullName = fullName, email = email.lowercase(), password = password))
         val code = generateCode()

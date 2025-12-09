@@ -22,15 +22,15 @@ export default function EventDetail({ params }: { params: { id: string } }) {
   const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
 
   useEffect(() => {
-    axios.get<EventCard>(`/events/${params.id}`).then((res) => setEvent(res.data));
+    axios.get<EventCard>(`http://localhost:8080/events/${params.id}`).then((res) => setEvent(res.data));
     if (userId) {
-      axios.get(`/events/${params.id}/status`, { params: { userId } }).then((res) => setStatus(res.data || 'NONE'));
+      axios.get(`http://localhost:8080/events/${params.id}/status`, { params: { userId } }).then((res) => setStatus(res.data || 'NONE'));
     }
   }, [params.id, userId]);
 
   const confirm = async () => {
     try {
-      await axios.post(`/events/${params.id}/confirm`, null, { params: { userId } });
+      await axios.post(`http://localhost:8080/events/${params.id}/confirm`, null, { params: { userId } });
       setMessage('Участие подтверждено');
       setStatus('CONFIRMED');
     } catch (e: any) {
@@ -40,7 +40,7 @@ export default function EventDetail({ params }: { params: { id: string } }) {
 
   const cancel = async () => {
     try {
-      await axios.post(`/events/${params.id}/cancel`, null, { params: { userId } });
+      await axios.post(`http://localhost:8080/events/${params.id}/cancel`, null, { params: { userId } });
       setMessage('Участие отменено');
       setStatus('CANCELLED');
     } catch (e: any) {
