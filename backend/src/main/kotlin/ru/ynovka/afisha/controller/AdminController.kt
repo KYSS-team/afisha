@@ -176,33 +176,18 @@ class AdminController(
         return ResponseEntity.ok(mapOf("status" to "deleted"))
     }
 
-    @GetMapping("/events/export/csv")
-    fun exportCsv(@RequestHeader(value = "X-Role", required = false) roleHeader: String?): ResponseEntity<ByteArrayResource> {
+    @GetMapping("/events/{id}/export/csv")
+    fun exportParticipantsCsv(
+        @RequestHeader(value = "X-Role", required = false) roleHeader: String?,
+        @PathVariable id: UUID
+    ): ResponseEntity<ByteArrayResource> {
         ensureAdmin(roleHeader)
-        val csv = buildString {
-            appendLine("id,title,status,startAt,endAt")
-            eventRepository.findAll().forEach { event ->
-                appendLine("${event.id},${event.title},${event.status},${event.startAt},${event.endAt}")
-            }
-        }
+        val participants = eventService.exportParticipants(id)
+        val csv = "fullName;email\n" + participants.joinToString("\n")
         val resource = ByteArrayResource(csv.toByteArray())
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=events.csv")
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=participants-$id.csv")
             .contentType(MediaType.parseMediaType("text/csv"))
-            .body(resource)
-    }
-
-    @GetMapping("/events/export/xlsx")
-    fun exportXlsx(@RequestHeader(value = "X-Role", required = false) roleHeader: String?): ResponseEntity<ByteArrayResource> {
-        ensureAdmin(roleHeader)
-        val header = "id\ttitle\tstatus\tstartAt\tendAt\n"
-        val rows = eventRepository.findAll().joinToString("\n") { event ->
-            "${event.id}\t${event.title}\t${event.status}\t${event.startAt}\t${event.endAt}"
-        }
-        val resource = ByteArrayResource((header + rows).toByteArray())
-        return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=events.xlsx")
-            .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
             .body(resource)
     }
 

@@ -126,7 +126,10 @@ class EventService(
         if (score !in 1..5) throw ValidationException("Оценка 1-5")
         val event = getEvent(eventId)
         if (event.status != EventStatus.PAST) throw ValidationException("Оценивать можно только прошедшие события")
-        if (participantRepository.findByUserIdAndStatus(userId, ParticipationStatus.CONFIRMED).none { it.eventId == eventId }) throw ValidationException("Нет участия")
+        val participation = participantRepository.findByEventIdAndUserId(eventId, userId)
+        if (participation == null || participation.status != ParticipationStatus.CONFIRMED) {
+            throw ValidationException("Вы не можете оставить отзыв, так как не являетесь подтвержденным участником этого события.")
+        }
         eventRatingRepository.save(
             EventRating(eventId = eventId, userId = userId, score = score, comment = comment)
         )

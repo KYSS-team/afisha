@@ -88,16 +88,22 @@ export function EventForm({ eventId }: AdminEventFormProps) {
       participantIds: form.participantIds,
       imageBase64: form.imageBase64 || undefined,
       imageType: form.imageType || undefined,
-      createdBy: undefined,
       status: form.status,
       paymentInfo: form.paymentInfo,
     };
-    if (eventId) {
-      await api.put(`/admin/events/${eventId}`, payload, { headers: { 'X-Role': 'ADMIN' } });
-    } else {
-      await api.post('/admin/events', payload, { headers: { 'X-Role': 'ADMIN' } });
+    try {
+      if (eventId) {
+        await api.put(`/admin/events/${eventId}`, payload, { headers: { 'X-Role': 'ADMIN' } });
+      } else {
+        const userId = localStorage.getItem('userId');
+        if (!userId) throw new Error('Не удалось определить создателя события');
+        await api.post('/admin/events', { ...payload, createdBy: userId }, { headers: { 'X-Role': 'ADMIN' } });
+      }
+      window.location.href = '/admin/events';
+    } catch (error) {
+      console.error('Failed to save event', error);
+      alert('Не удалось сохранить событие');
     }
-    window.location.href = '/admin/events';
   };
 
   const updateField = (key: keyof UpsertEvent, value: any) => {

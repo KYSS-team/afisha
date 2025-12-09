@@ -101,7 +101,7 @@ export default function AdminEventsPage() {
                 <td>{event.startAt}</td>
                 <td>{event.endAt}</td>
                 <td>{event.participants}</td>
-                <td>
+                <td className="space-x-2">
                   <Link className="btn" href={`/admin/events/${event.id}/edit`}>
                     Редактировать
                   </Link>
@@ -110,6 +110,9 @@ export default function AdminEventsPage() {
                       Одобрить
                     </button>
                   )}
+                  <button className="btn secondary" onClick={() => exportFile(event.id, 'csv')}>
+                    CSV
+                  </button>
                 </td>
               </tr>
             ))}
