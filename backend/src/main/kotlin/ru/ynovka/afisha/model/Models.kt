@@ -41,7 +41,7 @@ data class User(
     @Column(nullable = false)
     val registeredAt: Instant = Instant.now(),
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "boolean default false")
     var emailVerified: Boolean = false,
 
     var emailVerifiedAt: Instant? = null,
