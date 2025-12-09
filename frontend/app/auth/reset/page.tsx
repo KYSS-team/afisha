@@ -15,7 +15,7 @@ export default function ResetPage() {
 
   const requestLink = async () => {
     try {
-      await axios.post('/auth/forgot-password', { email });
+      await axios.post('http://localhost:8080/auth/forgot-password', { email });
       setMessage('Ссылка на сброс отправлена.');
     } catch (e: any) {
       setMessage(e.response?.data?.message ?? 'Ошибка запроса');
@@ -24,7 +24,7 @@ export default function ResetPage() {
 
   const changePassword = async () => {
     try {
-      await axios.post('/auth/reset-password', { token, password, confirmPassword });
+      await axios.post('http://localhost:8080/auth/reset-password', { token, password, confirmPassword });
       setMessage('Пароль обновлен. Вернитесь на страницу входа.');
     } catch (e: any) {
       setMessage(e.response?.data?.message ?? 'Ошибка');
