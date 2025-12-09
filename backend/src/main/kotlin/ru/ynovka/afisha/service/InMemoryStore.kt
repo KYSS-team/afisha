@@ -1,7 +1,15 @@
-package com.example.afisha.service
+package ru.ynovka.afisha.service
 
-import com.example.afisha.model.*
 import org.springframework.stereotype.Component
+import ru.ynovka.afisha.model.EmailVerificationToken
+import ru.ynovka.afisha.model.Event
+import ru.ynovka.afisha.model.EventParticipant
+import ru.ynovka.afisha.model.EventRating
+import ru.ynovka.afisha.model.EventStatus
+import ru.ynovka.afisha.model.ParticipationStatus
+import ru.ynovka.afisha.model.PasswordResetToken
+import ru.ynovka.afisha.model.User
+import ru.ynovka.afisha.model.UserRole
 import java.time.Instant
 import java.time.LocalDateTime
 import java.util.UUID
@@ -21,7 +29,12 @@ class InMemoryStore {
     }
 
     private fun seed() {
-        val admin = User(fullName = "Администратор Системы", email = "admin@example.com", password = "Admin123!", role = UserRole.ADMIN)
+        val admin = User(
+            fullName = "Администратор Системы",
+            email = "admin@example.com",
+            password = "Admin123!",
+            role = UserRole.ADMIN
+        )
         users[admin.id] = admin
         val now = LocalDateTime.now()
         val event = Event(

@@ -1,4 +1,4 @@
-package com.example.afisha.model
+package ru.ynovka.afisha.model
 
 import java.time.Instant
 import java.time.LocalDateTime
@@ -9,7 +9,7 @@ enum class UserStatus { ACTIVE, DELETED }
 
 data class User(
     val id: UUID = UUID.randomUUID(),
-    val fullName: String,
+    var fullName: String,
     val email: String,
     var password: String,
     var role: UserRole = UserRole.USER,

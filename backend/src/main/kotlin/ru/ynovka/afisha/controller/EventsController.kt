@@ -1,13 +1,14 @@
-package com.example.afisha.controller
+package ru.ynovka.afisha.controller
 
-import com.example.afisha.model.Event
-import com.example.afisha.model.ParticipationStatus
-import com.example.afisha.service.EventCreateRequest
-import com.example.afisha.service.EventService
+import ru.ynovka.afisha.model.Event
+import ru.ynovka.afisha.model.ParticipationStatus
+import ru.ynovka.afisha.service.EventCreateRequest
+import ru.ynovka.afisha.service.EventService
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.time.LocalDateTime
 import java.util.UUID
 
 @RestController
@@ -77,8 +78,8 @@ data class EventRequest(
         title = title,
         shortDescription = shortDescription,
         fullDescription = fullDescription,
-        startAt = java.time.LocalDateTime.parse(startAt),
-        endAt = java.time.LocalDateTime.parse(endAt),
+        startAt = LocalDateTime.parse(startAt),
+        endAt = LocalDateTime.parse(endAt),
         imageUrl = imageUrl,
         paymentInfo = paymentInfo,
         maxParticipants = maxParticipants,

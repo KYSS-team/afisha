@@ -1,7 +1,7 @@
-package com.example.afisha.controller
+package ru.ynovka.afisha.controller
 
-import com.example.afisha.model.User
-import com.example.afisha.service.AuthService
+import ru.ynovka.afisha.model.User
+import ru.ynovka.afisha.service.AuthService
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
@@ -12,8 +12,11 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/auth")
 class AuthController(private val authService: AuthService) {
     @PostMapping("/register")
-    fun register(@Valid @RequestBody body: RegisterRequest): User =
-        authService.register(body.fullName, body.email, body.password, body.confirmPassword)
+    fun register(@Valid @RequestBody body: RegisterRequest): User {
+        println(123123123123)
+        return authService.register(body.fullName, body.email, body.password, body.confirmPassword)
+    }
+
 
     @PostMapping("/verify-email")
     fun verify(@Valid @RequestBody body: VerifyRequest): ResponseEntity<Map<String, Any>> {

@@ -1,4 +1,4 @@
-package com.example.afisha
+package ru.ynovka.afisha
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication

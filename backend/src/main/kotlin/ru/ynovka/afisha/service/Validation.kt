@@ -1,4 +1,4 @@
-package com.example.afisha.service
+package ru.ynovka.afisha.service
 
 import jakarta.validation.ValidationException
 

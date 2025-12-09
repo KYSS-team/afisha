@@ -1,10 +1,10 @@
-package com.example.afisha.controller
+package ru.ynovka.afisha.controller
 
-import com.example.afisha.model.User
-import com.example.afisha.model.UserRole
-import com.example.afisha.model.UserStatus
-import com.example.afisha.service.AuthService
-import com.example.afisha.service.InMemoryStore
+import ru.ynovka.afisha.model.User
+import ru.ynovka.afisha.model.UserRole
+import ru.ynovka.afisha.model.UserStatus
+import ru.ynovka.afisha.service.AuthService
+import ru.ynovka.afisha.service.InMemoryStore
 import jakarta.validation.constraints.NotBlank
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*

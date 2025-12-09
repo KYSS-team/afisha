@@ -5,9 +5,9 @@ plugins {
     kotlin("plugin.spring") version "1.9.25"
 }
 
-group = "com.example.afisha"
+group = "ru.ynovka.afisha"
 version = "0.0.1"
-java.sourceCompatibility = JavaVersion.VERSION_17
+java.sourceCompatibility = JavaVersion.VERSION_21
 
 repositories {
     mavenCentral()

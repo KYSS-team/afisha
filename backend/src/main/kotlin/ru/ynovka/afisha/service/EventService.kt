@@ -1,8 +1,13 @@
-package com.example.afisha.service
+package ru.ynovka.afisha.service
 
-import com.example.afisha.model.*
 import jakarta.validation.ValidationException
 import org.springframework.stereotype.Service
+import ru.ynovka.afisha.model.Event
+import ru.ynovka.afisha.model.EventParticipant
+import ru.ynovka.afisha.model.EventRating
+import ru.ynovka.afisha.model.EventStatus
+import ru.ynovka.afisha.model.ParticipationStatus
+import java.time.Instant
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -35,7 +40,7 @@ class EventService(private val store: InMemoryStore, private val mailService: Ma
         if (existing != null) {
             existing.status = ParticipationStatus.CONFIRMED
             existing.cancelledAt = null
-            existing.confirmedAt = java.time.Instant.now()
+            existing.confirmedAt = Instant.now()
         } else {
             store.participants[UUID.randomUUID()] = EventParticipant(eventId = eventId, userId = userId)
         }
@@ -47,7 +52,7 @@ class EventService(private val store: InMemoryStore, private val mailService: Ma
         val participation = store.participants.values.firstOrNull { it.eventId == eventId && it.userId == userId }
             ?: throw ValidationException("Участие не найдено")
         participation.status = ParticipationStatus.CANCELLED
-        participation.cancelledAt = java.time.Instant.now()
+        participation.cancelledAt = Instant.now()
         mailService.send(event.createdBy.toString(), "Отмена участия", "Пользователь отменил участие в ${event.title}")
     }
 
@@ -97,7 +102,8 @@ class EventService(private val store: InMemoryStore, private val mailService: Ma
         val event = getEvent(eventId)
         if (event.status != EventStatus.PAST) throw ValidationException("Оценивать можно только прошедшие события")
         if (store.participationForUser(userId).none { it.eventId == eventId }) throw ValidationException("Нет участия")
-        store.ratings[UUID.randomUUID()] = EventRating(eventId = eventId, userId = userId, score = score, comment = comment)
+        store.ratings[UUID.randomUUID()] =
+            EventRating(eventId = eventId, userId = userId, score = score, comment = comment)
     }
 
     fun exportParticipants(eventId: UUID): List<String> {

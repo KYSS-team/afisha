@@ -1,9 +1,8 @@
-package com.example.afisha.service
+package ru.ynovka.afisha.service
 
-import com.example.afisha.model.PasswordResetToken
-import com.example.afisha.model.User
-import com.example.afisha.model.UserRole
-import com.example.afisha.model.UserStatus
+import ru.ynovka.afisha.model.User
+import ru.ynovka.afisha.model.UserRole
+import ru.ynovka.afisha.model.UserStatus
 import jakarta.validation.ValidationException
 import org.springframework.stereotype.Service
 import java.time.Instant
@@ -17,14 +16,16 @@ class AuthService(
     private val mailService: MailService
 ) {
     fun register(fullName: String, email: String, password: String, confirm: String): User {
+        println(123123)
         ValidationRules.validateFullName(fullName)
         ValidationRules.validatePassword(password)
-        if (password != confirm) throw ValidationException("Пароли не совпадают")
+        if (password != confirm) throw ValidationException("Па  роли не совпадают")
         if (store.emailTaken(email)) throw ValidationException("Пользователь с таким email уже существует")
         val user = User(fullName = fullName, email = email.lowercase(), password = password)
         store.users[user.id] = user
         val code = generateCode()
         store.createVerificationToken(user.id, code, Instant.now().plus(24, ChronoUnit.HOURS))
+        println(22222)
         mailService.send(email, "Код подтверждения", "Ваш код: $code")
         return user
     }
