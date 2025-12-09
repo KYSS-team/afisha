@@ -12,10 +12,8 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/auth")
 class AuthController(private val authService: AuthService) {
     @PostMapping("/register")
-    fun register(@Valid @RequestBody body: RegisterRequest): User {
-        println(123123123123)
-        return authService.register(body.fullName, body.email, body.password, body.confirmPassword)
-    }
+    fun register(@Valid @RequestBody body: RegisterRequest): User =
+        authService.register(body.fullName, body.email, body.password, body.confirmPassword)
 
 
     @PostMapping("/verify-email")
