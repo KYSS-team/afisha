@@ -52,4 +52,16 @@ interface EventParticipantsCount {
     fun getCount(): Long
 }
 
-interface EventRatingRepository : JpaRepository<EventRating, UUID>
+interface EventRatingRepository : JpaRepository<EventRating, UUID> {
+    fun findByEventId(eventId: UUID): List<EventRating>
+    fun countByEventId(eventId: UUID): Long
+
+    @Query("SELECT r.eventId AS eventId, avg(r.score) AS average, count(r) AS count FROM EventRating r WHERE r.eventId IN :eventIds GROUP BY r.eventId")
+    fun aggregateByEventId(@Param("eventIds") eventIds: List<UUID>): List<EventRatingAggregate>
+}
+
+interface EventRatingAggregate {
+    fun getEventId(): UUID
+    fun getAverage(): Double
+    fun getCount(): Long
+}

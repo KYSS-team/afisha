@@ -1,6 +1,7 @@
 package ru.ynovka.afisha.service
 
 import jakarta.validation.ValidationException
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.springframework.stereotype.Service
 import ru.ynovka.afisha.model.Event
 import ru.ynovka.afisha.model.EventDto
@@ -10,9 +11,11 @@ import ru.ynovka.afisha.model.EventStatus
 import ru.ynovka.afisha.model.ParticipationStatus
 import ru.ynovka.afisha.model.UserRole
 import ru.ynovka.afisha.repository.EventParticipantRepository
+import ru.ynovka.afisha.repository.EventRatingAggregate
 import ru.ynovka.afisha.repository.EventRatingRepository
 import ru.ynovka.afisha.repository.EventRepository
 import ru.ynovka.afisha.repository.UserRepository
+import java.io.ByteArrayOutputStream
 import java.time.Instant
 import java.time.LocalDateTime
 import java.util.UUID
@@ -46,6 +49,12 @@ class EventService(
         val participantsCount = participantRepository.countByEventIdInAndStatus(eventIds, ParticipationStatus.CONFIRMED)
             .associateBy({ it.getEventId() }, { it.getCount() })
 
+        val ratingAggregates: Map<UUID, EventRatingAggregate> = if (eventIds.isNotEmpty()) {
+            eventRatingRepository.aggregateByEventId(eventIds).associateBy { it.getEventId() }
+        } else {
+            emptyMap()
+        }
+
         val userParticipation = userId?.let {
             participantRepository.findByEventIdInAndUserId(eventIds, it).associateBy { it.eventId }
         } ?: emptyMap()
@@ -57,7 +66,9 @@ class EventService(
                 event = event,
                 participantsCount = participantsCount[event.id]?.toInt() ?: 0,
                 createdByFullName = userFullNames[event.createdBy]?.fullName,
-                participationStatus = userParticipation[event.id]?.status
+                participationStatus = userParticipation[event.id]?.status,
+                averageRating = ratingAggregates[event.id]?.getAverage(),
+                ratingsCount = ratingAggregates[event.id]?.getCount()?.toInt()
             )
         }.sortedBy { it.startAt }
     }
@@ -69,12 +80,15 @@ class EventService(
         val participants = participantRepository.countByEventIdAndStatus(id, ParticipationStatus.CONFIRMED)
         val creatorName = userRepository.findById(event.createdBy).map { it.fullName }.orElse(null)
         val participation = userId?.let { participantRepository.findByEventIdAndUserId(id, it)?.status }
+        val ratingSummary = event.id?.let { ratingSummaryFor(it) } ?: RatingSummary(null, 0)
 
         return toDto(
             event = event,
             participantsCount = participants.toInt(),
             createdByFullName = creatorName,
-            participationStatus = participation
+            participationStatus = participation,
+            averageRating = ratingSummary.average,
+            ratingsCount = ratingSummary.count
         )
     }
 
@@ -171,11 +185,54 @@ class EventService(
         )
     }
 
-    fun exportParticipants(eventId: UUID): List<String> {
+    fun getRatings(eventId: UUID): EventRatingsResponse {
+        getEvent(eventId)
+        val ratings = eventRatingRepository.findByEventId(eventId)
+        if (ratings.isEmpty()) return EventRatingsResponse(average = null, count = 0, ratings = emptyList())
+
+        val users = userRepository.findAllById(ratings.map { it.userId }).associateBy { it.id }
+        val average = ratings.map { it.score }.average()
+        val views = ratings
+            .sortedByDescending { it.createdAt }
+            .map {
+                EventRatingView(
+                    userId = it.userId,
+                    userName = users[it.userId]?.fullName,
+                    score = it.score,
+                    comment = it.comment,
+                    createdAt = it.createdAt
+                )
+            }
+
+        return EventRatingsResponse(average = average, count = ratings.size, ratings = views)
+    }
+
+    fun exportParticipantsXlsx(eventId: UUID): ByteArray {
         val event = getEvent(eventId)
-        val participantIds = participantRepository.findByEventIdAndStatus(event.id!!, ParticipationStatus.CONFIRMED).map { it.userId }
-        val users = userRepository.findAllById(participantIds)
-        return users.map { user -> "${user.fullName};${user.email}" }
+        val participants = participantRepository.findByEventId(event.id!!)
+        val users = userRepository.findAllById(participants.map { it.userId }).associateBy { it.id }
+
+        val workbook = XSSFWorkbook()
+        val sheet = workbook.createSheet("Participants")
+        val header = sheet.createRow(0)
+        val headers = listOf("ФИО", "Email", "Статус", "Подтверждено", "Отменено")
+        headers.forEachIndexed { index, title -> header.createCell(index).setCellValue(title) }
+
+        participants.forEachIndexed { index, participant ->
+            val row = sheet.createRow(index + 1)
+            val user = users[participant.userId]
+            row.createCell(0).setCellValue(user?.fullName ?: participant.userId.toString())
+            row.createCell(1).setCellValue(user?.email ?: "")
+            row.createCell(2).setCellValue(participant.status.name)
+            row.createCell(3).setCellValue(participant.confirmedAt.toString())
+            row.createCell(4).setCellValue(participant.cancelledAt?.toString() ?: "")
+        }
+
+        headers.indices.forEach { sheet.autoSizeColumn(it) }
+
+        val output = ByteArrayOutputStream()
+        workbook.use { it.write(output) }
+        return output.toByteArray()
     }
 
     private fun toDto(
@@ -183,6 +240,8 @@ class EventService(
         participantsCount: Int,
         createdByFullName: String?,
         participationStatus: ParticipationStatus?,
+        averageRating: Double?,
+        ratingsCount: Int?,
     ): EventDto =
         EventDto(
             id = event.id,
@@ -198,8 +257,19 @@ class EventService(
             createdBy = event.createdBy,
             createdByFullName = createdByFullName,
             participantsCount = participantsCount,
-            participationStatus = participationStatus
+            participationStatus = participationStatus,
+            averageRating = averageRating,
+            ratingsCount = ratingsCount
         )
+
+    private fun ratingSummaryFor(eventId: UUID): RatingSummary {
+        val aggregate = eventRatingRepository.aggregateByEventId(listOf(eventId)).firstOrNull()
+        return if (aggregate != null) {
+            RatingSummary(aggregate.getAverage(), aggregate.getCount().toInt())
+        } else {
+            RatingSummary(null, 0)
+        }
+    }
 
     private fun validateDates(start: LocalDateTime, end: LocalDateTime) {
         if (start.isBefore(LocalDateTime.now())) throw ValidationException("Дата начала должна быть в будущем")
@@ -263,3 +333,19 @@ data class EventCreateRequest(
     val participantIds: List<UUID> = emptyList(),
     val status: EventStatus? = null,
 )
+
+data class EventRatingsResponse(
+    val average: Double?,
+    val count: Int,
+    val ratings: List<EventRatingView>
+)
+
+data class EventRatingView(
+    val userId: UUID,
+    val userName: String?,
+    val score: Int,
+    val comment: String?,
+    val createdAt: Instant,
+)
+
+data class RatingSummary(val average: Double?, val count: Int)

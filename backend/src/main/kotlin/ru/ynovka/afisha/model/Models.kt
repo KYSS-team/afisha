@@ -153,7 +153,9 @@ data class EventDto(
     val createdBy: UUID,
     val createdByFullName: String?,
     val participantsCount: Int?,
-    val participationStatus: ParticipationStatus?
+    val participationStatus: ParticipationStatus?,
+    val averageRating: Double? = null,
+    val ratingsCount: Int? = null,
 )
 
 @Entity

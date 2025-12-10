@@ -1,7 +1,7 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { FormEvent, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api, emailRegex, passwordMeetsRules } from '../utils';
 
 interface AuthResponse {
@@ -21,6 +21,14 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const reason = searchParams.get('error');
+    if (reason === 'auth_required') {
+      setError('Авторизуйтесь, чтобы продолжить.');
+    }
+  }, [searchParams]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
