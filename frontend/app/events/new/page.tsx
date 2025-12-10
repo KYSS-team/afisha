@@ -38,11 +38,13 @@ export default function NewEventPage() {
 
     if (savedUserId && isValidUuid.test(savedUserId)) {
       setUserId(savedUserId);
-    } else {
-      localStorage.removeItem('userId');
-      setUserId('');
+      return;
     }
-  }, []);
+
+    localStorage.removeItem('userId');
+    setUserId('');
+    router.replace('/auth/login?error=auth_required');
+  }, [router]);
 
   const handleFile = (file: File) => {
     if (!file) return;
@@ -105,7 +107,7 @@ export default function NewEventPage() {
   };
 
   if (!userId) {
-    return <div className="card max-w-2xl">Войдите или зарегистрируйтесь, чтобы добавить событие.</div>;
+    return <div className="card max-w-2xl">Перенаправляем на страницу входа...</div>;
   }
 
   return (

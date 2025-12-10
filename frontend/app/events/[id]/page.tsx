@@ -24,6 +24,22 @@ interface EventCard {
   createdBy?: string;
   createdByFullName?: string;
   participationStatus?: 'CONFIRMED' | 'CANCELLED' | 'NONE';
+  averageRating?: number | null;
+  ratingsCount?: number;
+}
+
+interface EventRating {
+  userId: string;
+  userName?: string;
+  score: number;
+  comment?: string;
+  createdAt: string;
+}
+
+interface RatingResponse {
+  average: number | null;
+  count: number;
+  ratings: EventRating[];
 }
 
 export default function EventDetail({ params }: { params: { id: string } }) {
@@ -31,21 +47,42 @@ export default function EventDetail({ params }: { params: { id: string } }) {
   const [status, setStatus] = useState<string>('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [userId, setUserId] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [ratings, setRatings] = useState<EventRating[]>([]);
+  const [ratingSummary, setRatingSummary] = useState<{ average: number | null; count: number }>({ average: null, count: 0 });
+
+  const fetchEvent = async () => {
+    const { data } = await api.get<EventCard>(`/events/${params.id}`);
+    setEvent(data);
+  };
+
+  const fetchRatings = async () => {
+    const { data } = await api.get<RatingResponse>(`/events/${params.id}/ratings`);
+    setRatings(data.ratings);
+    setRatingSummary({ average: data.average, count: data.count });
+    setEvent((prev) => (prev ? { ...prev, averageRating: data.average, ratingsCount: data.count } : prev));
+  };
 
   useEffect(() => {
     setUserId(localStorage.getItem('userId') || '');
+    setUserRole(localStorage.getItem('userRole') || '');
   }, []);
 
   useEffect(() => {
-    api.get<EventCard>(`/events/${params.id}`).then((res) => setEvent(res.data));
+    fetchEvent();
+    fetchRatings();
   }, [params.id]);
 
   useEffect(() => {
     if (!userId) return;
     api.get(`/events/${params.id}/status`, { params: { userId } }).then((res) => setStatus(res.data || 'NONE'));
   }, [params.id, userId]);
+
+  const exportParticipants = () => {
+    window.open(`${API_BASE_URL}/events/${params.id}/export`, '_blank');
+  };
 
   const broadcastUpdate = () => {
     const timestamp = `${Date.now()}`;
@@ -89,6 +126,8 @@ export default function EventDetail({ params }: { params: { id: string } }) {
   if (!event) return <div>Загрузка...</div>;
 
   const isCreator = event.createdBy === userId;
+  const canExport = isCreator || userRole === 'ADMIN';
+  const ratingLabel = ratingSummary.count > 0 ? `${(ratingSummary.average ?? 0).toFixed(1)} / 5 (${ratingSummary.count})` : 'Нет оценок';
   const canConfirm = !isCreator && event.status === 'ACTIVE' && status !== 'CONFIRMED';
   const canCancel = status === 'CONFIRMED';
   const isFull = Boolean(event.maxParticipants && (event.participantsCount ?? 0) >= event.maxParticipants);
@@ -162,9 +201,18 @@ export default function EventDetail({ params }: { params: { id: string } }) {
                   {event.maxParticipants ? ` / ${event.maxParticipants}` : ''}
                 </span>
               </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600">Рейтинг</span>
+                <span className="font-semibold">{ratingLabel}</span>
+              </div>
               {event.maxParticipants && (
                 <div className="text-xs text-slate-500">
                   Свободных мест: {Math.max(0, event.maxParticipants - (event.participantsCount ?? 0))}
+                </div>
+              )}
+              {canExport && (
+                <div className="mt-3 text-right">
+                  <Button variant="outline" onClick={exportParticipants}>Скачать участников (XLSX)</Button>
                 </div>
               )}
             </div>
@@ -215,6 +263,8 @@ export default function EventDetail({ params }: { params: { id: string } }) {
                     { params: { userId } },
                   );
                   setMessage({ type: 'success', text: 'Спасибо за ваш отзыв!' });
+                  await fetchRatings();
+                  await fetchEvent();
                 } catch (error: any) {
                   setMessage({ type: 'error', text: error.response?.data?.message ?? 'Не удалось отправить отзыв' });
                 }
@@ -235,6 +285,29 @@ export default function EventDetail({ params }: { params: { id: string } }) {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Отзывы участников</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="text-sm text-slate-600">
+            {ratingSummary.count > 0
+              ? `Средний рейтинг ${(ratingSummary.average ?? 0).toFixed(1)} / 5 · ${ratingSummary.count} отзыв(ов)`
+              : 'Пока нет отзывов.'}
+          </div>
+          {ratings.map((rating) => (
+            <div key={`${rating.userId}-${rating.createdAt}`} className="rounded border p-3 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold">{rating.userName || 'Участник'}</span>
+                <span className="text-sm">Оценка: {rating.score} / 5</span>
+              </div>
+              {rating.comment && <p className="text-sm text-slate-700">{rating.comment}</p>}
+              <div className="text-xs text-slate-500">{new Date(rating.createdAt).toLocaleString('ru-RU')}</div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       {message && (
         <div

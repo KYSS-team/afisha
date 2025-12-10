@@ -2,7 +2,6 @@ package ru.ynovka.afisha.controller
 
 import ru.ynovka.afisha.model.ParticipationStatus
 import ru.ynovka.afisha.model.Event
-import jakarta.validation.ValidationException
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import org.springframework.http.ResponseEntity
@@ -15,6 +14,7 @@ import org.springframework.http.MediaType
 import ru.ynovka.afisha.model.EventDto
 import java.util.Base64
 import ru.ynovka.afisha.service.EventCreateRequest
+import ru.ynovka.afisha.service.EventRatingsResponse
 import ru.ynovka.afisha.service.EventService
 
 @RestController
@@ -45,6 +45,9 @@ class EventsController(private val service: EventService) {
     @GetMapping("/{id}")
     fun get(@PathVariable id: UUID, @RequestParam(required = false) userId: UUID?): EventDto =
         service.getEventDetails(id, userId)
+
+    @GetMapping("/{id}/ratings")
+    fun ratings(@PathVariable id: UUID): EventRatingsResponse = service.getRatings(id)
 
     @GetMapping("/{id}/status")
     fun participationStatus(@PathVariable id: UUID, @RequestParam userId: UUID?): ParticipationStatus? =
@@ -78,19 +81,25 @@ class EventsController(private val service: EventService) {
         return ResponseEntity.ok(mapOf("status" to "rejected"))
     }
 
-    @PostMapping(value = ["/{id}/rate", "/{id}/ratings"])
+    @PostMapping(value = ["/{id}/ratings", "/{id}/rate"])
     fun rate(
         @PathVariable id: UUID,
         @Valid @RequestBody body: RatingRequest,
-        @RequestParam(required = false) userId: UUID?
+        @RequestParam userId: UUID
     ): ResponseEntity<Map<String, Any>> {
-        val authorId = body.userId ?: userId ?: throw ValidationException("userId is required")
-        service.addRating(id, authorId, body.score, body.comment)
+        service.addRating(id, userId, body.score, body.comment)
         return ResponseEntity.ok(mapOf("message" to "Оценка сохранена"))
     }
 
     @GetMapping("/{id}/export")
-    fun export(@PathVariable id: UUID): List<String> = service.exportParticipants(id)
+    fun export(@PathVariable id: UUID): ResponseEntity<ByteArrayResource> {
+        val bytes = service.exportParticipantsXlsx(id)
+        val resource = ByteArrayResource(bytes)
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"participants.xlsx\"")
+            .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .body(resource)
+    }
 }
 
 data class EventRequest(
@@ -119,8 +128,7 @@ data class EventRequest(
     )
 }
 
-data class RatingRequest(
-    val userId: UUID?,
-    val score: Int,
-    val comment: String?
-)
+  data class RatingRequest(
+      val score: Int,
+      val comment: String?
+  )
