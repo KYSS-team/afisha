@@ -49,10 +49,24 @@ export default function EventsPage() {
   }, []);
 
   useEffect(() => {
+    if (!userId) {
+      setEvents([]);
+      return;
+    }
     setLoading(true);
+
+    let url = `/events`;
+    if (tab === 'my') {
+      url = `/users/${userId}/events`;
+    } else if (tab === 'active') {
+      url = `/events/active`;
+    } else if (tab === 'past') {
+      url = `/events/past`;
+    }
+
     api
-      .get<EventCard[] | { events?: EventCard[] }>(`/events`, {
-        params: { tab, userId: userId || undefined }
+      .get<EventCard[] | { events?: EventCard[] }>(url, {
+        params: { userId: userId || undefined }
       })
       .then((res) => {
         const data = Array.isArray(res.data)

@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { api, API_BASE_URL } from '../../auth/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface EventCard {
   id: string;
@@ -16,6 +22,8 @@ interface EventCard {
   maxParticipants?: number;
   participantsCount?: number;
   createdBy?: string;
+  createdByFullName?: string;
+  participationStatus?: 'CONFIRMED' | 'CANCELLED' | 'NONE';
 }
 
 export default function EventDetail({ params }: { params: { id: string } }) {
@@ -80,135 +88,179 @@ export default function EventDetail({ params }: { params: { id: string } }) {
 
   if (!event) return <div>Загрузка...</div>;
 
-  const canConfirm = event.status === 'ACTIVE' && status !== 'CONFIRMED';
+  const isCreator = event.createdBy === userId;
+  const canConfirm = !isCreator && event.status === 'ACTIVE' && status !== 'CONFIRMED';
   const canCancel = status === 'CONFIRMED';
   const isFull = Boolean(event.maxParticipants && (event.participantsCount ?? 0) >= event.maxParticipants);
 
   return (
-    <div className="card space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-slate-500">{event.startAt} — {event.endAt}</p>
-          <h1 className="text-2xl font-semibold">{event.title}</h1>
-          {event.shortDescription && <p className="text-slate-600">{event.shortDescription}</p>}
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className="badge">{event.status}</span>
-          <span className="badge blue" title="Ваш статус участия">
-            {status === 'CONFIRMED' ? 'Участвую' : status === 'CANCELLED' ? 'Отменено' : 'Не участвуете'}
-          </span>
-        </div>
-      </div>
-
-      <img src={`${API_BASE_URL}/events/${event.id}/image`} alt="Изображение события" className="w-full rounded-xl object-cover" />
-
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-2">
-          <p className="text-slate-700">{event.fullDescription}</p>
-          {event.status === 'PENDING' && (
-            <div className="badge amber" title="На рассмотрении администратором">
-              Модерация
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-slate-500">
+                {new Date(event.startAt).toLocaleDateString('ru-RU')} —{' '}
+                {new Date(event.endAt).toLocaleDateString('ru-RU')}
+              </p>
+              <CardTitle>{event.title}</CardTitle>
+              {event.shortDescription && <p className="text-slate-600">{event.shortDescription}</p>}
             </div>
-          )}
-          {event.paymentInfo && (
-            <div className="bg-slate-100 p-3 rounded" title="Информация об оплате">
-              {event.paymentInfo}
+            <div className="flex flex-col items-end gap-2">
+              <Badge>{event.status}</Badge>
+              <Badge variant="outline" title="Ваш статус участия">
+                {status === 'CONFIRMED' ? 'Участвую' : status === 'CANCELLED' ? 'Отменено' : 'Не участвуете'}
+              </Badge>
             </div>
-          )}
-        </div>
-        <div className="space-y-3">
-          <div className="rounded-lg border p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-600">Организатор</span>
-              <span className="font-semibold">{event.createdBy || 'Администратор'}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-600">Участники</span>
-              <span title="Текущее количество участников">
-                {event.participantsCount ?? 0}{event.maxParticipants ? ` / ${event.maxParticipants}` : ''}
-              </span>
-            </div>
-            {event.maxParticipants && (
-              <div className="text-xs text-slate-500">Свободных мест: {Math.max(0, event.maxParticipants - (event.participantsCount ?? 0))}</div>
-            )}
           </div>
-          {userId && (
-            <>
-              <div className="flex gap-2">
-                {canConfirm && (
-                  <button
-                    className="btn"
-                    disabled={loading || isFull}
-                    onClick={confirm}
-                    title={isFull ? 'Достигнут лимит участников' : undefined}
-                  >
-                    {isFull ? 'Нет мест' : 'Подтвердить участие'}
-                  </button>
-                )}
-                {canCancel && (
-                  <button className="btn secondary" disabled={loading} onClick={() => setCancelModalOpen(true)}>
-                    Отменить участие
-                  </button>
-                )}
+        </CardHeader>
+        <CardContent>
+          <img
+            src={`${API_BASE_URL}/events/${event.id}/image`}
+            alt="Изображение события"
+            className="w-full rounded-xl object-cover"
+          />
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Описание</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-slate-700">{event.fullDescription}</p>
+            {event.status === 'PENDING' && (
+              <Badge variant="secondary" title="На рассмотрении администратором">
+                Модерация
+              </Badge>
+            )}
+            {event.paymentInfo && (
+              <div className="bg-slate-100 p-3 rounded" title="Информация об оплате">
+                {event.paymentInfo}
               </div>
-              <div className="text-sm">Ваш статус: {status === 'CONFIRMED' ? 'Вы участвуете' : 'Вы не участвуете'}</div>
-            </>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Информация</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600">Организатор</span>
+                <span className="font-semibold">{event.createdByFullName || 'Администратор'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600">Участники</span>
+                <span title="Текущее количество участников">
+                  {event.participantsCount ?? 0}
+                  {event.maxParticipants ? ` / ${event.maxParticipants}` : ''}
+                </span>
+              </div>
+              {event.maxParticipants && (
+                <div className="text-xs text-slate-500">
+                  Свободных мест: {Math.max(0, event.maxParticipants - (event.participantsCount ?? 0))}
+                </div>
+              )}
+            </div>
+            {userId && (
+              <>
+                <div className="flex gap-2">
+                  {canConfirm && (
+                    <Button
+                      disabled={loading || isFull}
+                      onClick={confirm}
+                      title={isFull ? 'Достигнут лимит участников' : undefined}
+                    >
+                      {isFull ? 'Нет мест' : 'Подтвердить участие'}
+                    </Button>
+                  )}
+                  {canCancel && (
+                    <Button variant="destructive" disabled={loading} onClick={() => setCancelModalOpen(true)}>
+                      Отменить участие
+                    </Button>
+                  )}
+                </div>
+                <div className="text-sm">
+                  Ваш статус: {status === 'CONFIRMED' ? 'Вы участвуете' : 'Вы не участвуете'}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {event.status === 'PAST' && status === 'CONFIRMED' && (
-        <div className="card space-y-3">
-          <h2 className="text-xl font-semibold">Оставить отзыв</h2>
-          <form className="space-y-2" onSubmit={async (e) => {
-            e.preventDefault();
-            const form = e.target as HTMLFormElement;
-            const score = (form.elements.namedItem('score') as HTMLInputElement).value;
-            const comment = (form.elements.namedItem('comment') as HTMLTextAreaElement).value;
-            try {
-              await api.post(`/events/${params.id}/ratings`, { score: parseInt(score, 10), comment }, { params: { userId } });
-              setMessage({ type: 'success', text: 'Спасибо за ваш отзыв!' });
-            } catch (error: any) {
-              setMessage({ type: 'error', text: error.response?.data?.message ?? 'Не удалось отправить отзыв' });
-            }
-          }}>
-            <div className="flex items-center gap-2">
-              <span>Оценка:</span>
-              {[1, 2, 3, 4, 5].map(star => (
-                <label key={star} className="flex items-center gap-1 cursor-pointer">
-                  <input type="radio" name="score" value={star} required />
-                  <span>{star}⭐</span>
-                </label>
-              ))}
-            </div>
-            <textarea name="comment" className="input" placeholder="Ваш комментарий"></textarea>
-            <button type="submit" className="btn">Отправить</button>
-          </form>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Оставить отзыв</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form
+              className="space-y-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.target as HTMLFormElement;
+                const score = (form.elements.namedItem('score') as HTMLInputElement).value;
+                const comment = (form.elements.namedItem('comment') as HTMLTextAreaElement).value;
+                try {
+                  await api.post(
+                    `/events/${params.id}/ratings`,
+                    { score: parseInt(score, 10), comment },
+                    { params: { userId } },
+                  );
+                  setMessage({ type: 'success', text: 'Спасибо за ваш отзыв!' });
+                } catch (error: any) {
+                  setMessage({ type: 'error', text: error.response?.data?.message ?? 'Не удалось отправить отзыв' });
+                }
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span>Оценка:</span>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <label key={star} className="flex items-center gap-1 cursor-pointer">
+                    <Input type="radio" name="score" value={star} required />
+                    <span>{star}⭐</span>
+                  </label>
+                ))}
+              </div>
+              <Textarea name="comment" placeholder="Ваш комментарий" />
+              <Button type="submit">Отправить</Button>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {message && (
-        <div className={`rounded p-3 ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+        <div
+          className={`rounded p-3 ${
+            message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
           {message.text}
         </div>
       )}
 
-      {cancelModalOpen && (
-        <div className="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="card space-y-3 w-full max-w-md">
-            <h2 className="text-xl font-semibold">Отменить участие?</h2>
-            <p>Вы уверены, что хотите отменить участие в событии «{event.title}»?</p>
-            <div className="flex justify-end gap-2">
-              <button className="btn secondary" onClick={() => setCancelModalOpen(false)} disabled={loading}>
+      <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Отменить участие?</DialogTitle>
+          </DialogHeader>
+          <p>Вы уверены, что хотите отменить участие в событии «{event.title}»?</p>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost" onClick={() => setCancelModalOpen(false)} disabled={loading}>
                 Вернуться
-              </button>
-              <button className="btn" onClick={cancel} disabled={loading}>
-                Подтвердить отмену
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={cancel} disabled={loading}>
+              Подтвердить отмену
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

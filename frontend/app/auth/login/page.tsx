@@ -37,7 +37,11 @@ export default function LoginPage() {
       localStorage.setItem('userRole', data.user.role);
       localStorage.setItem('userName', data.user.fullName);
       setMessage(data.message || `Добро пожаловать, ${data.user.fullName}! Перенаправляем...`);
-      router.push('/events');
+      if (data.user.role === 'ADMIN') {
+        router.push('/admin');
+      } else {
+        router.push('/events');
+      }
     } catch (e: any) {
       setError(e.response?.data?.message ?? 'Неверные учетные данные');
     } finally {
