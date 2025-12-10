@@ -3,6 +3,7 @@ package ru.ynovka.afisha.service
 import jakarta.validation.ValidationException
 import org.springframework.stereotype.Service
 import ru.ynovka.afisha.model.Event
+import ru.ynovka.afisha.model.EventDto
 import ru.ynovka.afisha.model.EventParticipant
 import ru.ynovka.afisha.model.EventRating
 import ru.ynovka.afisha.model.EventStatus
@@ -25,9 +26,9 @@ class EventService(
     private val userRepository: UserRepository,
     private val mailService: MailService
 ) {
-    fun listEvents(tab: String, userId: UUID?): List<Event> {
+    fun listEvents(tab: String, userId: UUID?): List<EventDto> {
         val events = eventRepository.findAll().map { refreshStatus(it) }
-        return when (tab) {
+        val filteredEvents = when (tab) {
             "active" -> events.filter { it.status == EventStatus.ACTIVE }
             "past" -> events.filter { it.status == EventStatus.PAST }
             else -> userId?.let { uid ->
@@ -38,6 +39,36 @@ class EventService(
                         (it.status != EventStatus.PENDING || it.createdBy == uid)
                 }
             } ?: emptyList()
+        }
+
+        val userIds = filteredEvents.map { it.createdBy }.toSet()
+        val users = userRepository.findAllById(userIds).associateBy { it.id }
+
+        val eventIds = filteredEvents.mapNotNull { it.id }
+        val participantsCount = participantRepository.countByEventIdInAndStatus(eventIds, ParticipationStatus.CONFIRMED)
+            .associateBy({ it.getEventId() }, { it.getCount() })
+
+        val userParticipation = userId?.let {
+            participantRepository.findByEventIdInAndUserId(eventIds, it).associateBy { it.eventId }
+        } ?: emptyMap()
+
+        return filteredEvents.map { event ->
+            EventDto(
+                id = event.id,
+                title = event.title,
+                shortDescription = event.shortDescription,
+                fullDescription = event.fullDescription,
+                startAt = event.startAt,
+                endAt = event.endAt,
+                imageUrl = event.imageUrl,
+                paymentInfo = event.paymentInfo,
+                maxParticipants = event.maxParticipants,
+                status = event.status,
+                createdBy = event.createdBy,
+                createdByFullName = users[event.createdBy]?.fullName,
+                participantsCount = participantsCount[event.id!!]?.toInt() ?: 0,
+                participationStatus = userParticipation[event.id]?.status
+            )
         }.sortedBy { it.startAt }
     }
 

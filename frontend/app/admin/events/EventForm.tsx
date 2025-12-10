@@ -3,6 +3,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api, API_BASE_URL } from '../../auth/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export interface AdminEventFormProps {
   eventId?: string;
@@ -132,102 +138,64 @@ export function EventForm({ eventId }: AdminEventFormProps) {
   };
 
   return (
-    <form className="card space-y-4" onSubmit={onSubmit}>
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">{eventId ? 'Редактирование события' : 'Новое событие'}</h2>
-        <Link className="btn" href="/admin/events">
-          Назад
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">Название</span>
-          <input className="input" value={form.title} onChange={(e) => updateField('title', e.target.value)} required />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">Статус</span>
-          <select className="input" value={form.status} onChange={(e) => updateField('status', e.target.value)}>
-            <option value="ACTIVE">ACTIVE</option>
-            <option value="PAST">PAST</option>
-            <option value="REJECTED">REJECTED</option>
-            <option value="PENDING">PENDING</option>
-          </select>
-        </label>
-      </div>
-
-      <label className="flex flex-col gap-2">
-        <span className="text-sm">Краткое описание</span>
-        <input className="input" value={form.shortDescription} onChange={(e) => updateField('shortDescription', e.target.value)} />
-      </label>
-
-      <label className="flex flex-col gap-2">
-        <span className="text-sm">Полное описание</span>
-        <textarea className="input" value={form.fullDescription} onChange={(e) => updateField('fullDescription', e.target.value)} required />
-      </label>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">Начало</span>
-          <input type="datetime-local" className="input" value={form.startAt} onChange={(e) => updateField('startAt', e.target.value)} required />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">Окончание</span>
-          <input type="datetime-local" className="input" value={form.endAt} onChange={(e) => updateField('endAt', e.target.value)} required />
-        </label>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <span className="text-sm">Баннер события</span>
-        <label className="upload">
-          <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
-          <span>{form.imagePreview ? 'Заменить изображение' : 'Загрузить изображение (до 2 МБ)'}</span>
-        </label>
-        {form.imagePreview && (
-          <div className="rounded-lg border p-2 bg-slate-50">
-            <img src={form.imagePreview} alt="Превью баннера" className="w-full max-h-56 object-cover rounded" />
+    <form onSubmit={onSubmit}>
+      <Card>
+        <CardHeader>
+          <CardTitle>{eventId ? 'Редактирование события' : 'Новое событие'}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input placeholder="Название" value={form.title} onChange={(e) => updateField('title', e.target.value)} required />
+            <Select value={form.status} onValueChange={(value) => updateField('status', value)}>
+              <SelectTrigger><SelectValue placeholder="Статус" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                <SelectItem value="PAST">PAST</SelectItem>
+                <SelectItem value="REJECTED">REJECTED</SelectItem>
+                <SelectItem value="PENDING">PENDING</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">Оплата</span>
-          <input className="input" value={form.paymentInfo} onChange={(e) => updateField('paymentInfo', e.target.value)} />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">Лимит участников</span>
-          <input
-            className="input"
-            type="number"
-            value={form.maxParticipants}
-            onChange={(e) => updateField('maxParticipants', e.target.value === '' ? '' : Number(e.target.value))}
-          />
-        </label>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-sm">Участники</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {users.map((user) => (
-            <label key={user.id} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.participantIds.includes(user.id)}
-                onChange={() => toggleParticipant(user.id)}
-              />
-              <span>{user.fullName}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex justify-end">
-        <button className="btn" type="submit">
-          Сохранить
-        </button>
-      </div>
+          <Input placeholder="Краткое описание" value={form.shortDescription} onChange={(e) => updateField('shortDescription', e.target.value)} />
+          <Textarea placeholder="Полное описание" value={form.fullDescription} onChange={(e) => updateField('fullDescription', e.target.value)} required />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input type="datetime-local" value={form.startAt} onChange={(e) => updateField('startAt', e.target.value)} required />
+            <Input type="datetime-local" value={form.endAt} onChange={(e) => updateField('endAt', e.target.value)} required />
+          </div>
+          <Input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+          {form.imagePreview && <img src={form.imagePreview} alt="Превью баннера" className="w-full max-h-56 object-cover rounded" />}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input placeholder="Оплата" value={form.paymentInfo} onChange={(e) => updateField('paymentInfo', e.target.value)} />
+            <Input
+              type="number"
+              placeholder="Лимит участников"
+              value={form.maxParticipants}
+              onChange={(e) => updateField('maxParticipants', e.target.value === '' ? '' : Number(e.target.value))}
+            />
+          </div>
+          <div className="space-y-2">
+            <p>Участники</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {users.map((user) => (
+                <div key={user.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`user-${user.id}`}
+                    checked={form.participantIds.includes(user.id)}
+                    onCheckedChange={() => toggleParticipant(user.id)}
+                  />
+                  <label htmlFor={`user-${user.id}`}>{user.fullName}</label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" asChild>
+              <Link href="/admin/events">Назад</Link>
+            </Button>
+            <Button type="submit">Сохранить</Button>
+          </div>
+        </CardContent>
+      </Card>
     </form>
   );
 }
-

@@ -137,6 +137,23 @@ data class Event(
         get() = id?.let { "/events/${it}/image" }
 }
 
+data class EventDto(
+    val id: UUID?,
+    val title: String,
+    val shortDescription: String?,
+    val fullDescription: String,
+    val startAt: LocalDateTime,
+    val endAt: LocalDateTime,
+    val imageUrl: String?,
+    val paymentInfo: String?,
+    val maxParticipants: Int?,
+    val status: EventStatus,
+    val createdBy: UUID,
+    val createdByFullName: String?,
+    val participantsCount: Int?,
+    val participationStatus: ParticipationStatus?
+)
+
 @Entity
 @Table(name = "event_participants")
 data class EventParticipant(
