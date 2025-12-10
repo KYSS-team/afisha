@@ -2,6 +2,7 @@ package ru.ynovka.afisha.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -142,7 +143,9 @@ data class EventDto(
     val title: String,
     val shortDescription: String?,
     val fullDescription: String,
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     val startAt: LocalDateTime,
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     val endAt: LocalDateTime,
     val imageUrl: String?,
     val paymentInfo: String?,

@@ -27,7 +27,9 @@ class EventService(
     private val mailService: MailService
 ) {
     fun listEvents(tab: String, userId: UUID?): List<EventDto> {
-        val events = eventRepository.findAll().map { refreshStatus(it) }
+        val events = eventRepository.findAll()
+            .map { refreshStatus(it) }
+            .filter { it.status != EventStatus.PENDING }
         val filteredEvents = when (tab) {
             "active" -> events.filter { it.status == EventStatus.ACTIVE }
             "past" -> events.filter { it.status == EventStatus.PAST }
@@ -35,14 +37,10 @@ class EventService(
                 val myEvents = participantRepository.findByUserIdAndStatus(uid, ParticipationStatus.CONFIRMED).map { it.eventId }.toSet()
                 events.filter {
                     (it.id in myEvents || it.createdBy == uid) &&
-                        it.status != EventStatus.REJECTED &&
-                        (it.status != EventStatus.PENDING || it.createdBy == uid)
+                        it.status != EventStatus.REJECTED
                 }
             } ?: emptyList()
         }
-
-        val userIds = filteredEvents.map { it.createdBy }.toSet()
-        val users = userRepository.findAllById(userIds).associateBy { it.id }
 
         val eventIds = filteredEvents.mapNotNull { it.id }
         val participantsCount = participantRepository.countByEventIdInAndStatus(eventIds, ParticipationStatus.CONFIRMED)
@@ -52,27 +50,33 @@ class EventService(
             participantRepository.findByEventIdInAndUserId(eventIds, it).associateBy { it.eventId }
         } ?: emptyMap()
 
+        val userFullNames = userRepository.findAllById(filteredEvents.map { it.createdBy }).associateBy { it.id }
+
         return filteredEvents.map { event ->
-            EventDto(
-                id = event.id,
-                title = event.title,
-                shortDescription = event.shortDescription,
-                fullDescription = event.fullDescription,
-                startAt = event.startAt,
-                endAt = event.endAt,
-                imageUrl = event.imageUrl,
-                paymentInfo = event.paymentInfo,
-                maxParticipants = event.maxParticipants,
-                status = event.status,
-                createdBy = event.createdBy,
-                createdByFullName = users[event.createdBy]?.fullName,
-                participantsCount = participantsCount[event.id!!]?.toInt() ?: 0,
+            toDto(
+                event = event,
+                participantsCount = participantsCount[event.id]?.toInt() ?: 0,
+                createdByFullName = userFullNames[event.createdBy]?.fullName,
                 participationStatus = userParticipation[event.id]?.status
             )
         }.sortedBy { it.startAt }
     }
 
     fun getEvent(id: UUID): Event = refreshStatus(eventRepository.findById(id).orElseThrow { ValidationException("Событие не найдено") })
+
+    fun getEventDetails(id: UUID, userId: UUID?): EventDto {
+        val event = getEvent(id)
+        val participants = participantRepository.countByEventIdAndStatus(id, ParticipationStatus.CONFIRMED)
+        val creatorName = userRepository.findById(event.createdBy).map { it.fullName }.orElse(null)
+        val participation = userId?.let { participantRepository.findByEventIdAndUserId(id, it)?.status }
+
+        return toDto(
+            event = event,
+            participantsCount = participants.toInt(),
+            createdByFullName = creatorName,
+            participationStatus = participation
+        )
+    }
 
     fun participationStatus(eventId: UUID, userId: UUID?): ParticipationStatus? =
         userId?.let { participantRepository.findByEventIdAndUserId(eventId, it)?.status }
@@ -122,7 +126,8 @@ class EventService(
         )
         applyImage(event, dto.imageBase64, dto.imageType, required = true)
         val saved = eventRepository.save(event)
-        dto.participantIds.forEach { userId ->
+        val participantIds = (dto.participantIds + creatorId).toSet()
+        participantIds.forEach { userId ->
             participantRepository.save(EventParticipant(eventId = saved.id!!, userId = userId))
             val email = userRepository.findById(userId).map { it.email }.orElse(userId.toString())
             mailService.send(email, "Новое событие", "Вас пригласили на ${event.title}")
@@ -172,6 +177,29 @@ class EventService(
         val users = userRepository.findAllById(participantIds)
         return users.map { user -> "${user.fullName};${user.email}" }
     }
+
+    private fun toDto(
+        event: Event,
+        participantsCount: Int,
+        createdByFullName: String?,
+        participationStatus: ParticipationStatus?,
+    ): EventDto =
+        EventDto(
+            id = event.id,
+            title = event.title,
+            shortDescription = event.shortDescription,
+            fullDescription = event.fullDescription,
+            startAt = event.startAt,
+            endAt = event.endAt,
+            imageUrl = event.imageUrl,
+            paymentInfo = event.paymentInfo,
+            maxParticipants = event.maxParticipants,
+            status = event.status,
+            createdBy = event.createdBy,
+            createdByFullName = createdByFullName,
+            participantsCount = participantsCount,
+            participationStatus = participationStatus
+        )
 
     private fun validateDates(start: LocalDateTime, end: LocalDateTime) {
         if (start.isBefore(LocalDateTime.now())) throw ValidationException("Дата начала должна быть в будущем")
