@@ -114,7 +114,7 @@ export default function AdminEventsPage() {
                     {event.status === 'PENDING' && (
                       <Button onClick={() => approve(event.id)}>Одобрить</Button>
                     )}
-                    <Button variant="outline" onClick={() => exportFile(event.id, 'csv')}>CSV</Button>
+                    <Button variant="outline" onClick={() => exportFile('csv')}>CSV</Button>
                   </TableCell>
                 </TableRow>
               ))}
