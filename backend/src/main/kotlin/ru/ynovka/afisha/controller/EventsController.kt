@@ -1,7 +1,8 @@
 package ru.ynovka.afisha.controller
 
-import ru.ynovka.afisha.model.Event
 import ru.ynovka.afisha.model.ParticipationStatus
+import ru.ynovka.afisha.model.Event
+import jakarta.validation.ValidationException
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import org.springframework.http.ResponseEntity
@@ -23,6 +24,12 @@ class EventsController(private val service: EventService) {
     fun list(@RequestParam(defaultValue = "my") tab: String, @RequestParam(required = false) userId: UUID?): List<EventDto> =
         service.listEvents(tab, userId)
 
+    @GetMapping("/active")
+    fun active(@RequestParam(required = false) userId: UUID?): List<EventDto> = service.listEvents("active", userId)
+
+    @GetMapping("/past")
+    fun past(@RequestParam(required = false) userId: UUID?): List<EventDto> = service.listEvents("past", userId)
+
     @GetMapping("/{id}/image")
     fun image(@PathVariable id: UUID): ResponseEntity<ByteArrayResource> {
         val event = service.getEvent(id)
@@ -36,7 +43,8 @@ class EventsController(private val service: EventService) {
     }
 
     @GetMapping("/{id}")
-    fun get(@PathVariable id: UUID): Event = service.getEvent(id)
+    fun get(@PathVariable id: UUID, @RequestParam(required = false) userId: UUID?): EventDto =
+        service.getEventDetails(id, userId)
 
     @GetMapping("/{id}/status")
     fun participationStatus(@PathVariable id: UUID, @RequestParam userId: UUID?): ParticipationStatus? =
@@ -70,9 +78,14 @@ class EventsController(private val service: EventService) {
         return ResponseEntity.ok(mapOf("status" to "rejected"))
     }
 
-    @PostMapping("/{id}/rate")
-    fun rate(@PathVariable id: UUID, @Valid @RequestBody body: RatingRequest): ResponseEntity<Map<String, Any>> {
-        service.addRating(id, body.userId, body.score, body.comment)
+    @PostMapping(value = ["/{id}/rate", "/{id}/ratings"])
+    fun rate(
+        @PathVariable id: UUID,
+        @Valid @RequestBody body: RatingRequest,
+        @RequestParam(required = false) userId: UUID?
+    ): ResponseEntity<Map<String, Any>> {
+        val authorId = body.userId ?: userId ?: throw ValidationException("userId is required")
+        service.addRating(id, authorId, body.score, body.comment)
         return ResponseEntity.ok(mapOf("message" to "Оценка сохранена"))
     }
 
@@ -107,7 +120,7 @@ data class EventRequest(
 }
 
 data class RatingRequest(
-    val userId: UUID,
+    val userId: UUID?,
     val score: Int,
     val comment: String?
 )
