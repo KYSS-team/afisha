@@ -8,7 +8,6 @@ import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
-import jakarta.persistence.Lob
 import jakarta.persistence.Table
 import java.time.Instant
 import java.time.LocalDateTime
@@ -116,7 +115,7 @@ data class Event(
     var endAt: LocalDateTime,
 
     @get:JsonIgnore
-    @Lob
+    @Column(columnDefinition = "text")
     var imageData: String? = null,
 
     var imageContentType: String? = null,
