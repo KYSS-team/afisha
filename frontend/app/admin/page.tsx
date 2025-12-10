@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api } from '../auth/utils';
+import { api, API_BASE_URL } from '../auth/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,12 +9,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 interface EventRow {
   id: string;
   title: string;
   createdByFullName: string;
   createdAt: string;
+}
+
+interface PendingEventDetails extends EventRow {
+  shortDescription?: string;
+  fullDescription: string;
+  startAt: string;
+  endAt: string;
+  imageUrl: string;
+  paymentInfo?: string;
+  status: 'ACTIVE' | 'PAST' | 'REJECTED' | 'PENDING';
+  maxParticipants?: number;
+  participantsCount?: number;
+  createdBy?: string;
 }
 
 interface UserRow {
@@ -43,6 +57,10 @@ export default function AdminPage() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [viewingEvent, setViewingEvent] = useState<EventRow | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [previewEvent, setPreviewEvent] = useState<PendingEventDetails | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
 
   useEffect(() => {
     api
@@ -118,6 +136,44 @@ export default function AdminPage() {
     setEvents((prev) => prev.filter((e) => e.id !== viewingEvent.id));
     setViewingEvent(null);
     setRejectionReason('');
+  };
+
+  const loadPreview = async (id: string) => {
+    setPreviewId(id);
+    setPreviewLoading(true);
+    setPreviewError('');
+    setPreviewEvent(null);
+    try {
+      const { data } = await api.get<PendingEventDetails>(`/events/${id}`, { headers: { 'X-Role': 'ADMIN' } });
+      setPreviewEvent(data);
+    } catch (error) {
+      setPreviewError('Не удалось загрузить данные события. Попробуйте обновить страницу.');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const closePreview = () => {
+    setPreviewId(null);
+    setPreviewEvent(null);
+    setPreviewError('');
+  };
+
+  const approveFromPreview = async () => {
+    if (!previewEvent) return;
+    await approveEvent(previewEvent.id);
+    closePreview();
+  };
+
+  const rejectFromPreview = () => {
+    if (!previewEvent) return;
+    setViewingEvent({
+      id: previewEvent.id,
+      title: previewEvent.title,
+      createdAt: previewEvent.createdAt,
+      createdByFullName: previewEvent.createdByFullName ?? '',
+    });
+    closePreview();
   };
 
   return (
@@ -227,6 +283,9 @@ export default function AdminPage() {
                       <TableCell>{event.createdByFullName}</TableCell>
                       <TableCell>{new Date(event.createdAt).toLocaleDateString('ru-RU')}</TableCell>
                       <TableCell className="space-x-2">
+                        <Button variant="outline" onClick={() => loadPreview(event.id)}>
+                          Предпросмотр
+                        </Button>
                         <Button variant="outline" onClick={() => approveEvent(event.id)}>
                           Одобрить
                         </Button>
@@ -308,6 +367,87 @@ export default function AdminPage() {
               <Button onClick={rejectEvent} disabled={!rejectionReason}>Подтвердить</Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={previewId !== null} onOpenChange={(open) => !open && closePreview()}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Предпросмотр события</DialogTitle>
+          </DialogHeader>
+
+          {previewLoading && <p className="text-sm text-slate-600">Загружаем данные...</p>}
+          {previewError && (
+            <div className="text-sm rounded-md px-3 py-2 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-50">
+              {previewError}
+            </div>
+          )}
+
+          {previewEvent && (
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm text-slate-600">
+                    {new Date(previewEvent.startAt).toLocaleDateString('ru-RU')} —{' '}
+                    {new Date(previewEvent.endAt).toLocaleDateString('ru-RU')}
+                  </p>
+                  <h3 className="text-lg font-semibold">{previewEvent.title}</h3>
+                  {previewEvent.shortDescription && (
+                    <p className="text-slate-700 dark:text-slate-200">{previewEvent.shortDescription}</p>
+                  )}
+                </div>
+                <Badge>{previewEvent.status}</Badge>
+              </div>
+
+              <img
+                src={`${API_BASE_URL}/events/${previewEvent.id}/image`}
+                alt="Изображение события"
+                className="w-full rounded-xl object-cover max-h-[320px]"
+              />
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 rounded border p-3">
+                  <div className="text-sm text-slate-600">Описание</div>
+                  <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap">
+                    {previewEvent.fullDescription}
+                  </p>
+                  {previewEvent.paymentInfo && (
+                    <div className="bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 p-2 rounded">
+                      {previewEvent.paymentInfo}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2 rounded border p-3">
+                  <div className="flex items-center justify-between text-sm text-slate-600">
+                    <span>Организатор</span>
+                    <span className="font-semibold text-foreground">
+                      {previewEvent.createdByFullName || 'Администратор'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-slate-600">
+                    <span>Участники</span>
+                    <span>
+                      {previewEvent.participantsCount ?? 0}
+                      {previewEvent.maxParticipants ? ` / ${previewEvent.maxParticipants}` : ''}
+                    </span>
+                  </div>
+                  {previewEvent.maxParticipants && (
+                    <p className="text-xs text-slate-500">
+                      Свободных мест: {Math.max(0, previewEvent.maxParticipants - (previewEvent.participantsCount ?? 0))}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="destructive" onClick={rejectFromPreview}>
+                  Отклонить
+                </Button>
+                <Button onClick={approveFromPreview}>Одобрить</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

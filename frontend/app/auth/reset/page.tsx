@@ -81,7 +81,7 @@ function ResetForm() {
           <p className="text-sm text-slate-600">Введите email, и мы пришлем ссылку для сброса пароля.</p>
           <div className="space-y-1">
             <input className="input" placeholder="Почта" value={email} onChange={(e) => setEmail(e.target.value)} />
-            {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
+            {errors.email && <p className="text-sm text-red-600 dark:text-red-300">{errors.email}</p>}
           </div>
           <button className="btn" type="submit" disabled={loading}>
             {loading ? 'Отправляем...' : 'Отправить ссылку'}
@@ -100,7 +100,7 @@ function ResetForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
+            {errors.password && <p className="text-sm text-red-600 dark:text-red-300">{errors.password}</p>}
           </div>
           <div className="space-y-1">
             <input
@@ -110,7 +110,7 @@ function ResetForm() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
-            {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword}</p>}
+            {errors.confirmPassword && <p className="text-sm text-red-600 dark:text-red-300">{errors.confirmPassword}</p>}
           </div>
           <button className="btn" type="submit" disabled={loading}>
             {loading ? 'Меняем...' : 'Сменить пароль'}
@@ -124,8 +124,22 @@ function ResetForm() {
         </a>
       )}
 
-      {message && <div className="text-sm text-green-600" role="alert">{message}</div>}
-      {error && <div className="text-sm text-red-600" role="alert">{error}</div>}
+      {message && (
+        <div
+          className="text-sm rounded-md px-3 py-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+          role="alert"
+        >
+          {message}
+        </div>
+      )}
+      {error && (
+        <div
+          className="text-sm rounded-md px-3 py-2 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-50"
+          role="alert"
+        >
+          {error}
+        </div>
+      )}
     </div>
   );
 }

@@ -136,7 +136,10 @@ export default function EventDetail({ params }: { params: { id: string } }) {
               </Badge>
             )}
             {event.paymentInfo && (
-              <div className="bg-slate-100 p-3 rounded" title="Информация об оплате">
+              <div
+                className="bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 p-3 rounded"
+                title="Информация об оплате"
+              >
                 {event.paymentInfo}
               </div>
             )}
@@ -236,7 +239,9 @@ export default function EventDetail({ params }: { params: { id: string } }) {
       {message && (
         <div
           className={`rounded p-3 ${
-            message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            message.type === 'success'
+              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-50'
           }`}
         >
           {message.text}
