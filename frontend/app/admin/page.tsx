@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../auth/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface UserRow {
   id: string;
@@ -81,130 +87,119 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
-        <div className="flex flex-col gap-2">
-          <label className="text-sm">ФИО</label>
-          <input className="input" value={query} onChange={(e) => setQuery(e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm">Роль</label>
-          <select className="input" value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="">Все</option>
-            <option value="USER">USER</option>
-            <option value="ADMIN">ADMIN</option>
-          </select>
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm">Статус</label>
-          <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Любой</option>
-            <option value="ACTIVE">ACTIVE</option>
-            <option value="DELETED">Удалён</option>
-          </select>
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm">Регистрация от</label>
-          <input type="date" className="input" value={registeredFrom} onChange={(e) => setRegisteredFrom(e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm">Регистрация до</label>
-          <input type="date" className="input" value={registeredTo} onChange={(e) => setRegisteredTo(e.target.value)} />
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Фильтры</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Input placeholder="ФИО" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Select value={role} onValueChange={setRole}>
+            <SelectTrigger><SelectValue placeholder="Роль" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Все</SelectItem>
+              <SelectItem value="USER">USER</SelectItem>
+              <SelectItem value="ADMIN">ADMIN</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger><SelectValue placeholder="Статус" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Любой</SelectItem>
+              <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+              <SelectItem value="DELETED">Удалён</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input type="date" value={registeredFrom} onChange={(e) => setRegisteredFrom(e.target.value)} />
+          <Input type="date" value={registeredTo} onChange={(e) => setRegisteredTo(e.target.value)} />
+        </CardContent>
+      </Card>
 
-      <div className="card">
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th align="left">ФИО</th>
-              <th align="left">Почта</th>
-              <th align="left">Роль</th>
-              <th align="left">Статус</th>
-              <th align="left">Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td>{user.fullName}</td>
-                <td>{user.email}</td>
-                <td>{user.role}</td>
-                <td>{user.status}</td>
-                <td className="space-x-2">
-                  <button className="btn" onClick={() => openEdit(user)}>
-                    Редактировать
-                  </button>
-                  <button className="btn" onClick={() => confirmReset(user)}>
-                    Сбросить пароль
-                  </button>
-                  {user.status !== 'DELETED' && (
-                    <button className="btn" onClick={() => deleteUser(user.id)}>
-                      Удалить
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Управление пользователями</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ФИО</TableHead>
+                <TableHead>Почта</TableHead>
+                <TableHead>Роль</TableHead>
+                <TableHead>Дата регистрации</TableHead>
+                <TableHead>Статус</TableHead>
+                <TableHead>Действия</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.fullName}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell>{new Date(user.registeredAt).toLocaleDateString('ru-RU')}</TableCell>
+                  <TableCell>{user.status}</TableCell>
+                  <TableCell className="space-x-2">
+                    <Button variant="outline" onClick={() => openEdit(user)}>Редактировать</Button>
+                    <Button variant="outline" onClick={() => confirmReset(user)}>Сбросить пароль</Button>
+                    {user.status !== 'DELETED' && (
+                      <Button variant="destructive" onClick={() => deleteUser(user.id)}>Удалить</Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      {editing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="card space-y-3 w-[420px]">
-            <h3 className="text-lg font-semibold">Редактирование пользователя</h3>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm">ФИО</label>
-              <input className="input" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm">Роль</label>
-              <select className="input" value={editRole} onChange={(e) => setEditRole(e.target.value)}>
-                <option value="USER">USER</option>
-                <option value="ADMIN">ADMIN</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm">Статус</label>
-              <select className="input" value={editStatus} onChange={(e) => setEditStatus(e.target.value)}>
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="DELETED">DELETED</option>
-              </select>
-            </div>
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактирование пользователя</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input value={editFullName} onChange={(e) => setEditFullName(e.target.value)} placeholder="ФИО" />
+            <Select value={editRole} onValueChange={setEditRole}>
+              <SelectTrigger><SelectValue placeholder="Роль" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USER">USER</SelectItem>
+                <SelectItem value="ADMIN">ADMIN</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={editStatus} onValueChange={setEditStatus}>
+              <SelectTrigger><SelectValue placeholder="Статус" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                <SelectItem value="DELETED">DELETED</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="flex justify-end gap-2">
-              <button className="btn" onClick={() => setEditing(null)}>
-                Отмена
-              </button>
-              <button className="btn" onClick={saveEdit}>
-                Сохранить
-              </button>
+              <Button variant="ghost" onClick={() => setEditing(null)}>Отмена</Button>
+              <Button onClick={saveEdit}>Сохранить</Button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {resetTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="card space-y-3 w-[380px]">
-            <h3 className="text-lg font-semibold">Сброс пароля для {resetTarget.fullName}</h3>
-            <input
-              className="input"
+      <Dialog open={!!resetTarget} onOpenChange={(open) => !open && setResetTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Сброс пароля для {resetTarget?.fullName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
               type="password"
               placeholder="Новый пароль"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
             <div className="flex justify-end gap-2">
-              <button className="btn" onClick={() => setResetTarget(null)}>
-                Отмена
-              </button>
-              <button className="btn" onClick={submitReset} disabled={!newPassword}>
-                Подтвердить
-              </button>
+              <Button variant="ghost" onClick={() => setResetTarget(null)}>Отмена</Button>
+              <Button onClick={submitReset} disabled={!newPassword}>Подтвердить</Button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

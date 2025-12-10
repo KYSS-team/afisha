@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 
 interface EventCard {
   id: string;
@@ -21,6 +23,7 @@ interface EventCard {
   status: 'ACTIVE' | 'PAST' | 'REJECTED' | 'PENDING';
   maxParticipants?: number;
   createdBy: string;
+  createdByFullName?: string;
   participantsCount?: number;
   participationStatus?: 'CONFIRMED' | 'CANCELLED' | 'NONE';
 }
@@ -31,6 +34,7 @@ export default function EventsPage() {
   const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastAction, setLastAction] = useState('');
+  const [cancelEvent, setCancelEvent] = useState<EventCard | null>(null);
 
   const emptyStateByTab: Record<typeof tab, string> = {
     my: 'Вы пока не подтвердили участие ни в одном событии.',
@@ -124,45 +128,117 @@ export default function EventsPage() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                     {events.map((event) => (
-                        <Link key={event.id} href={`/events/${event.id}`}>
-                            <Card className="hover:-translate-y-1 transition-transform">
-                                <CardHeader>
-                                    <CardTitle>{event.title}</CardTitle>
-                                    <div className="flex items-center gap-2">
-                                        {event.status === 'ACTIVE' && <Badge>Активно</Badge>}
-                                        {event.status === 'PAST' && <Badge variant="secondary">Прошло</Badge>}
-                                        {event.status === 'PENDING' && <Badge variant="outline">Ожидает</Badge>}
-                                        {event.status === 'REJECTED' && <Badge variant="destructive">Отклонено</Badge>}
-                                        {event.participationStatus && event.participationStatus !== 'NONE' && (
-                                          <Badge variant={event.participationStatus === 'CONFIRMED' ? 'default' : 'destructive'}>
-                                            {event.participationStatus === 'CONFIRMED' ? 'Участвую' : 'Отменено'}
-                                          </Badge>
-                                        )}
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <img
-                                        src={cardImage(event.id)}
-                                        alt={`Изображение события ${event.title}`}
-                                        className="w-full h-48 object-cover rounded-lg"
-                                    />
-                                    <CardDescription className="mt-2 line-clamp-2">{event.shortDescription ?? event.fullDescription}</CardDescription>
-                                </CardContent>
-                                <CardFooter className="flex justify-between">
-                                    <div>
-                                        <span>{event.startAt} — {event.endAt}</span>
-                                    </div>
-                                    <div>
-                                        Участники: {event.participantsCount ?? 0}
-                                        {event.maxParticipants ? ` / ${event.maxParticipants}` : ''}
-                                    </div>
-                                </CardFooter>
-                            </Card>
-                        </Link>
+                        <TooltipProvider key={event.id}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Link href={`/events/${event.id}`}>
+                                        <Card className="hover:-translate-y-1 transition-transform">
+                                            <CardHeader>
+                                                <CardTitle>{event.title}</CardTitle>
+                                                <div className="flex items-center gap-2">
+                                                    {event.status === 'ACTIVE' && <Badge>Активно</Badge>}
+                                                    {event.status === 'PAST' && <Badge variant="secondary">Прошло</Badge>}
+                                                    {event.status === 'PENDING' && <Badge variant="outline">Ожидает</Badge>}
+                                                    {event.status === 'REJECTED' && <Badge variant="destructive">Отклонено</Badge>}
+                                                    {event.participationStatus && event.participationStatus !== 'NONE' && (
+                                                      <Badge variant={event.participationStatus === 'CONFIRMED' ? 'default' : 'destructive'}>
+                                                        {event.participationStatus === 'CONFIRMED' ? 'Участвую' : 'Отменено'}
+                                                      </Badge>
+                                                    )}
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="flex-grow">
+                                                    <img
+                                                        src={cardImage(event.id)}
+                                                        alt={`Изображение события ${event.title}`}
+                                                        className="w-full h-48 object-cover rounded-lg"
+                                                    />
+                                                    <CardDescription className="mt-2 line-clamp-2">{event.shortDescription ?? event.fullDescription}</CardDescription>
+                                                </div>
+                                                <div className="mt-4 flex justify-end gap-2">
+                                                    {userId && event.status === 'ACTIVE' && event.participationStatus !== 'CONFIRMED' && (
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={async (e) => {
+                                                                e.preventDefault();
+                                                                try {
+                                                                    await api.post(`/events/${event.id}/confirm`, null, { params: { userId } });
+                                                                    window.dispatchEvent(new Event('events:updated'));
+                                                                } catch (error) {
+                                                                    console.error('Failed to confirm participation', error);
+                                                                }
+                                                            }}
+                                                        >
+                                                            Участвовать
+                                                        </Button>
+                                                    )}
+                                                    {userId && event.participationStatus === 'CONFIRMED' && (
+                                                        <Button
+                                                            variant="destructive"
+                                                             onClick={(e) => {
+                                                                e.preventDefault();
+                                                                 setCancelEvent(event);
+                                                            }}
+                                                        >
+                                                            Отменить участие
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </CardContent>
+                                            <CardFooter className="flex justify-between">
+                                                <div>
+                                                    <span>
+                                                        {new Date(event.startAt).toLocaleDateString('ru-RU')} — {new Date(event.endAt).toLocaleDateString('ru-RU')}
+                                                    </span>
+                                                    <p className="text-sm text-gray-500">{event.createdByFullName}</p>
+                                                </div>
+                                                <div>
+                                                    Участники: {event.participantsCount ?? 0}
+                                                    {event.maxParticipants ? ` / ${event.maxParticipants}` : ''}
+                                                </div>
+                                            </CardFooter>
+                                        </Card>
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{event.fullDescription}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     ))}
                 </div>
             </TabsContent>
         </Tabs>
++
++        <Dialog open={!!cancelEvent} onOpenChange={(open) => !open && setCancelEvent(null)}>
++            <DialogContent>
++                <DialogHeader>
++                    <DialogTitle>Отменить участие?</DialogTitle>
++                </DialogHeader>
++                <p>Вы уверены, что хотите отменить участие в событии «{cancelEvent?.title}»?</p>
++                <DialogFooter>
++                    <DialogClose asChild>
++                        <Button variant="ghost">Вернуться</Button>
++                    </DialogClose>
++                    <Button
++                        variant="destructive"
++                        onClick={async () => {
++                            if (!cancelEvent) return;
++                            try {
++                                await api.post(`/events/${cancelEvent.id}/cancel`, null, { params: { userId } });
++                                window.dispatchEvent(new Event('events:updated'));
++                                setCancelEvent(null);
++                            } catch (error) {
++                                console.error('Failed to cancel participation', error);
++                            }
++                        }}
++                    >
++                        Подтвердить отмену
++                    </Button>
++                </DialogFooter>
++            </DialogContent>
++        </Dialog>
     </div>
   );
 }
