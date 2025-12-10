@@ -230,7 +230,7 @@ class AdminController(
         @PathVariable id: UUID
     ): ResponseEntity<ByteArrayResource> {
         ensureAdmin(roleHeader)
-        val participants = eventService.exportParticipants(id)
+        val participants = eventService.exportParticipantsXlsx(id)
         val csv = "fullName;email\n" + participants.joinToString("\n")
         val resource = ByteArrayResource(csv.toByteArray())
         return ResponseEntity.ok()
