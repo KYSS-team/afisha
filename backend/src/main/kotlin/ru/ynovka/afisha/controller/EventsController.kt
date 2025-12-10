@@ -11,6 +11,7 @@ import java.util.UUID
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import ru.ynovka.afisha.model.EventDto
 import java.util.Base64
 import ru.ynovka.afisha.service.EventCreateRequest
 import ru.ynovka.afisha.service.EventService
@@ -19,7 +20,7 @@ import ru.ynovka.afisha.service.EventService
 @RequestMapping("/events")
 class EventsController(private val service: EventService) {
     @GetMapping
-    fun list(@RequestParam(defaultValue = "my") tab: String, @RequestParam(required = false) userId: UUID?): List<Event> =
+    fun list(@RequestParam(defaultValue = "my") tab: String, @RequestParam(required = false) userId: UUID?): List<EventDto> =
         service.listEvents(tab, userId)
 
     @GetMapping("/{id}/image")
