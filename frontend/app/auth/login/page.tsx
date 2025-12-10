@@ -54,7 +54,7 @@ export default function LoginPage() {
         </div>
         <div className="space-y-1">
           <input
-            className="input"
+            className="input "
             placeholder="Пароль"
             type="password"
             value={password}

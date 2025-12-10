@@ -18,7 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/auth/login', label: 'Войти' },
   { href: '/auth/register', label: 'Регистрация' },
   { href: '/events', label: 'События' },
-  { href: '/admin', label: 'Админ', requiredRole: 'ADMIN' }
+  { href: '/admin', label: 'Админ' }
 ];
 
 function resolveStoredRole(): UserRole {
@@ -52,6 +52,7 @@ export function Navigation() {
               href={item.href}
               aria-label={item.label}
               title={item.label}
+              className='m-2'
             >
               {item.label}
             </Link>
