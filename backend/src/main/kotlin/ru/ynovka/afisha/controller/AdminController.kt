@@ -108,6 +108,54 @@ class AdminController(
         return ResponseEntity.ok(mapOf("status" to "deleted"))
     }
 
+    @GetMapping("/events/pending")
+    fun pendingEvents(
+        @RequestHeader(value = "X-Role", required = false) roleHeader: String?,
+    ): List<Map<String, Any?>> {
+        ensureAdmin(roleHeader)
+        val events = eventRepository.findByStatus(EventStatus.PENDING)
+        val authors = userRepository.findAllById(events.map { it.createdBy }).associateBy { it.id }
+
+        return events.map { event ->
+            mapOf(
+                "id" to event.id,
+                "title" to event.title,
+                "createdByFullName" to authors[event.createdBy]?.fullName,
+                "createdAt" to event.startAt,
+            )
+        }
+    }
+
+    @PostMapping("/events/{id}/approve")
+    fun approveEvent(
+        @RequestHeader(value = "X-Role", required = false) roleHeader: String?,
+        @PathVariable id: UUID
+    ): ResponseEntity<Map<String, Any>> {
+        ensureAdmin(roleHeader)
+        val event = eventRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
+        event.status = EventStatus.ACTIVE
+        eventRepository.save(event)
+        return ResponseEntity.ok(mapOf("status" to "approved"))
+    }
+
+    @PostMapping("/events/{id}/reject")
+    fun rejectEvent(
+        @RequestHeader(value = "X-Role", required = false) roleHeader: String?,
+        @PathVariable id: UUID,
+        @RequestBody body: RejectEventRequest
+    ): ResponseEntity<Map<String, Any>> {
+        ensureAdmin(roleHeader)
+        val event = eventRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
+        event.status = EventStatus.REJECTED
+        eventRepository.save(event)
+
+        val creatorEmail = userRepository.findById(event.createdBy).map { it.email }.orElse(event.createdBy.toString())
+        val reason = body.reason?.takeIf { it.isNotBlank() } ?: "Событие отклонено"
+        mailService.send(creatorEmail, "Событие отклонено", reason)
+
+        return ResponseEntity.ok(mapOf("status" to "rejected"))
+    }
+
     @GetMapping("/events")
     fun events(
         @RequestHeader(value = "X-Role", required = false) roleHeader: String?,
@@ -259,4 +307,8 @@ data class UpsertEventRequest(
 data class EventDetails(
     val event: Event,
     val participants: List<EventParticipant>
+)
+
+data class RejectEventRequest(
+    val reason: String?
 )
