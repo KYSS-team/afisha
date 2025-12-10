@@ -18,7 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/auth/login', label: 'Войти' },
   { href: '/auth/register', label: 'Регистрация' },
   { href: '/events', label: 'События' },
-  { href: '/admin', label: 'Админ' }
+  { href: '/admin', label: 'Админ' , requiredRole: "ADMIN"}
 ];
 
 function resolveStoredRole(): UserRole {
