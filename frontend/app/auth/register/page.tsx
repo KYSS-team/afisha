@@ -57,7 +57,7 @@ export default function RegisterPage() {
             onChange={(e) => setFullName(e.target.value)}
             disabled={registered}
           />
-          {errors.fullName && <p className="text-sm text-red-600">{errors.fullName}</p>}
+          {errors.fullName && <p className="text-sm text-red-600 dark:text-red-300">{errors.fullName}</p>}
         </div>
         <div className="space-y-1">
           <input
@@ -67,7 +67,7 @@ export default function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
             disabled={registered}
           />
-          {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
+          {errors.email && <p className="text-sm text-red-600 dark:text-red-300">{errors.email}</p>}
         </div>
         <div className="space-y-1">
           <input
@@ -78,7 +78,7 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
             disabled={registered}
           />
-          {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
+          {errors.password && <p className="text-sm text-red-600 dark:text-red-300">{errors.password}</p>}
         </div>
         <div className="space-y-1">
           <input
@@ -89,7 +89,7 @@ export default function RegisterPage() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={registered}
           />
-          {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword}</p>}
+          {errors.confirmPassword && <p className="text-sm text-red-600 dark:text-red-300">{errors.confirmPassword}</p>}
         </div>
         <button className="btn" type="submit" disabled={loading || registered}>
           {registered ? 'Проверьте почту' : loading ? 'Отправляем...' : 'Зарегистрироваться'}
@@ -98,8 +98,22 @@ export default function RegisterPage() {
       <a className="link text-sm" href="/auth/login">
         Уже есть аккаунт? Войти
       </a>
-      {message && <div className="text-sm text-green-600" role="alert">{message}</div>}
-      {error && <div className="text-sm text-red-600" role="alert">{error}</div>}
+      {message && (
+        <div
+          className="text-sm rounded-md px-3 py-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+          role="alert"
+        >
+          {message}
+        </div>
+      )}
+      {error && (
+        <div
+          className="text-sm rounded-md px-3 py-2 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-50"
+          role="alert"
+        >
+          {error}
+        </div>
+      )}
     </div>
   );
 }

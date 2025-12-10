@@ -78,8 +78,22 @@ export default function LoginPage() {
           Создать аккаунт
         </a>
       </div>
-      {message && <div className="text-sm text-green-600" role="alert">{message}</div>}
-      {error && <div className="text-sm text-red-600" role="alert">{error}</div>}
+      {message && (
+        <div
+          className="text-sm rounded-md px-3 py-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+          role="alert"
+        >
+          {message}
+        </div>
+      )}
+      {error && (
+        <div
+          className="text-sm rounded-md px-3 py-2 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-50"
+          role="alert"
+        >
+          {error}
+        </div>
+      )}
     </div>
   );
 }
