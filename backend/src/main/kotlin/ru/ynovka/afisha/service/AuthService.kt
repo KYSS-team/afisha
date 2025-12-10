@@ -67,7 +67,7 @@ class AuthService(
         user.emailVerifiedAt = Instant.now()
         userRepository.save(user)
 
-        mailService.send(user.email, "Регистрация подтверждена", "Добро пожаловать, ${'$'}{user.fullName}")
+        mailService.send(user.email, "Регистрация подтверждена", "Добро пожаловать, ${user.fullName}")
         val accessToken = jwtService.generateAccessToken(user)
         val refreshToken = jwtService.generateRefreshToken(user)
         return AuthResult(user.toProfile(), AuthTokens(accessToken, refreshToken))
@@ -110,7 +110,7 @@ class AuthService(
                 expiresAt = Instant.now().plus(24, ChronoUnit.HOURS)
             )
         )
-        mailService.send(email, "Сброс пароля", "Перейдите по ссылке /auth/reset?token=${'$'}token для смены пароля")
+        mailService.send(email, "Сброс пароля", "Перейдите по ссылке <a>https://myshore.ru/auth/reset?token=${token}</a> для смены пароля")
     }
 
     fun resetPassword(token: String, newPassword: String, confirm: String) {
